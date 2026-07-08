@@ -2,8 +2,8 @@ name: Calculateur Vantage Matinal
 
 on:
   schedule:
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+    - cron: '0 2 * * *'  # Déclenchement automatique à 4h00 du matin (Heure de Paris)
+  workflow_dispatch:     # Permet d'avoir le bouton gris pour le lancer manuellement
 
 jobs:
   execution:
@@ -21,4 +21,4 @@ jobs:
         run: pip install supabase requests
 
       - name: 4. Lancement de l'analyse tennis
-        run: python .github/workflows/vantage_bot.py
+        run: python vantage_bot.py
