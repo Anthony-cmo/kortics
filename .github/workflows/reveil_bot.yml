@@ -1,0 +1,24 @@
+name: Calculateur Vantage Matinal
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2h00 UTC = 4h00 du matin en France (Heure d'été)
+  workflow_dispatch:     # Ce bouton te permettra de lancer le robot à la main quand tu veux
+
+jobs:
+  execution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Récupération du code
+        uses: actions/checkout@v3
+
+      - name: 2. Installation de Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 3. Installation des connecteurs
+        run: pip install supabase requests
+
+      - name: 4. Lancement de l'analyse tennis
+        run: python vantage_bot.py
