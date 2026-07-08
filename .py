@@ -53,13 +53,35 @@ def main():
     aujourdhui = datetime.date.today().strftime("%Y-%m-%d")
     url_api = f"https://api.api-tennis.com/tennis/?method=get_fixtures&APIkey={TENNIS_API_KEY}&date_start={aujourdhui}&date_stop={aujourdhui}"
     
-    reponse = requests.get(url_api).json()
+    # 🎭 MASQUE DE SÉCURITÉ (On fait croire qu'on est sur Google Chrome)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    print(f"📡 Requête envoyée à l'API pour la date du {aujourdhui}...")
+    raw_reponse = requests.get(url_api, headers=headers)
+    
+    # Vérification du contenu reçu avant de tenter la lecture
+    try:
+        reponse = raw_reponse.json()
+    except Exception as e:
+        print(f"❌ Erreur critique : Le serveur API a bloqué l'accès ou renvoyé du HTML.")
+        print(f"Code HTTP reçu : {raw_reponse.status_code}")
+        print(f"Début du texte reçu : {raw_reponse.text[:300]}")
+        return
+        
     if "result" not in reponse:
+        print("⚠️ Aucune donnée exploitable reçue.")
         return
         
     matchs = reponse["result"]
+    print(f"🎾 {len(matchs)} matchs capturés avec succès !")
     
+    compteur = 0
     for m in matchs:
+        if compteur >= 40:  # Limite de sécurité pour le test
+            break
+            
         nom_tournoi = m.get("league_name") or "Tournoi International"
         joueur_1 = m.get("event_home_team") or m.get("event_first_player") or "Joueur A"
         joueur_2 = m.get("event_away_team") or m.get("event_second_player") or "Joueur B"
@@ -96,8 +118,11 @@ def main():
         
         try:
             supabase.table("historical_predictions").insert(data_match).execute()
+            compteur += 1
         except:
             pass
+
+    print(f"🎉 Analyse matinale terminée. {compteur} matchs envoyés dans Supabase.")
 
 if __name__ == "__main__":
     main()
