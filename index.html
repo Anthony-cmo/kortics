@@ -25,18 +25,46 @@
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 py-12">
+    <main class="max-w-6xl mx-auto px-4 py-10">
         
-        <div class="mb-10">
+        <div class="mb-14">
+            <h2 class="text-lg font-bold text-white mb-6 flex items-center space-x-2">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                <span>Performances de l'Algorithme</span>
+            </h2>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Profit Net Généré</div>
+                    <div id="kpi-profit" class="text-2xl font-mono font-bold text-white">-- €</div>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Taux de Réussite</div>
+                    <div id="kpi-winrate" class="text-2xl font-mono font-bold text-white">-- %</div>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">ROI (Yield)</div>
+                    <div id="kpi-roi" class="text-2xl font-mono font-bold text-white">-- %</div>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Matchs Validés</div>
+                    <div id="kpi-total" class="text-2xl font-mono font-bold text-white">--</div>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 mt-3">*Bilan calculé automatiquement sur la base de mises fixes fictives de 10€ par match.</p>
+        </div>
+
+        <hr class="border-slate-800 mb-10">
+
+        <div class="mb-8">
             <div class="flex items-center space-x-2 text-emerald-400 text-xs font-semibold tracking-wider uppercase mb-2">
                 <span class="flex h-2 w-2 relative">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span>Connecté à Supabase</span>
+                <span>Analyse Live Élite ATP</span>
             </div>
-            <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Opportunités du Jour</h1>
-            <p class="mt-2 text-sm text-slate-400">Analyses récupérées en temps réel depuis le coffre-fort de données.</p>
+            <h1 class="text-3xl font-bold tracking-tight text-white">Opportunités du Jour</h1>
         </div>
 
         <div id="match-container" class="grid gap-6 md:grid-cols-2">
@@ -44,42 +72,73 @@
         </div>
     </main>
 
-  <script>
-        async function chargerMatchs() {
+    <script>
+        async function initialiserVantage() {
             const container = document.getElementById('match-container');
             
             try {
-                // 1. Vérification si Supabase est bloqué par le navigateur
-                if (typeof supabase === 'undefined') {
-                    throw new Error("La librairie Supabase est introuvable. As-tu un bloqueur de pub actif (AdBlock/Brave) ?");
-                }
+                if (typeof supabase === 'undefined') throw new Error("La librairie Supabase est introuvable.");
 
-                // 2. Connexion
                 const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
                 const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
                 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 
-                // 3. Récupération de la date
-                const aujourdhui = new Date().toISOString().split('T')[0];
-                
-                // 4. Appel à la base de données
-                const { data, error } = await supabaseClient
+                // 1. On récupère ABSOLUMENT TOUT l'historique pour les calculs
+                const { data: historique, error } = await supabaseClient
                     .from('historical_predictions')
                     .select('*')
-                    .eq('match_date', aujourdhui)
-                    .order('is_value', { ascending: false });
+                    .order('match_date', { ascending: false });
 
                 if (error) throw new Error("Refus de Supabase : " + error.message);
 
-                container.innerHTML = ''; // On efface le message de chargement
+                // --- PARTIE A : CALCUL DU TABLEAU DE BORD (KPI) ---
+                // On isole uniquement les Value Bets qui ont été clôturés par le robot du soir
+                const parisTermines = historique.filter(m => m.is_value === true && (m.match_status === 'Gagné' || m.match_status === 'Perdu'));
+                const totalParis = parisTermines.length;
 
-                if (data.length === 0) {
-                    container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match trouvé pour la date du ${aujourdhui}. Vérifie sur Supabase si le robot a bien tourné pour aujourd'hui !</p>`;
+                if (totalParis > 0) {
+                    const parisGagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
+                    const winRate = ((parisGagnes / totalParis) * 100).toFixed(1);
+                    
+                    const totalProfit = parisTermines.reduce((somme, m) => somme + (m.profit_loss || 0), 0);
+                    const totalInvesti = totalParis * 10; // 10€ par match
+                    const roi = ((totalProfit / totalInvesti) * 100).toFixed(1);
+
+                    // Mises à jour des couleurs (Vert si positif, Rouge si négatif)
+                    const elProfit = document.getElementById('kpi-profit');
+                    elProfit.innerText = (totalProfit > 0 ? '+' : '') + totalProfit.toFixed(2) + ' €';
+                    if (totalProfit > 0) elProfit.classList.add('text-emerald-400');
+                    else if (totalProfit < 0) elProfit.classList.add('text-red-400');
+
+                    document.getElementById('kpi-winrate').innerText = winRate + ' %';
+
+                    const elRoi = document.getElementById('kpi-roi');
+                    elRoi.innerText = (roi > 0 ? '+' : '') + roi + ' %';
+                    if (roi > 0) elRoi.classList.add('text-emerald-400');
+                    else if (roi < 0) elRoi.classList.add('text-red-400');
+
+                    document.getElementById('kpi-total').innerText = totalParis;
+                } else {
+                    // Si aucun match n'est encore terminé, on laisse à l'état de calibrage
+                    document.getElementById('kpi-profit').innerText = "Calibrage...";
+                    document.getElementById('kpi-profit').classList.add('text-slate-500', 'text-lg');
+                }
+
+                // --- PARTIE B : AFFICHAGE DES MATCHS DU JOUR ---
+                container.innerHTML = ''; // On efface le message de chargement
+                
+                const aujourdhui = new Date().toISOString().split('T')[0];
+                const matchsDuJour = historique.filter(m => m.match_date === aujourdhui);
+
+                // On trie pour mettre les Value Bets en premier
+                matchsDuJour.sort((a, b) => (b.is_value === true) - (a.is_value === true));
+
+                if (matchsDuJour.length === 0) {
+                    container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match détecté pour la date du ${aujourdhui}. L'algorithme est en veille.</p>`;
                     return;
                 }
 
-                // 5. Affichage des cartes
-                data.forEach(match => {
+                matchsDuJour.forEach(match => {
                     const isValue = match.is_value;
                     const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
                     const iaColor = isValue ? 'text-emerald-400' : 'text-slate-400';
@@ -128,7 +187,6 @@
                 });
 
             } catch (err) {
-                // L'AFFICHAGE DU CRASH EN ROUGE
                 container.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">
                     <h3 class="font-bold text-lg mb-2">🚨 Le site a rencontré un problème :</h3>
                     <p class="font-mono text-sm">${err.message}</p>
@@ -136,7 +194,7 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', chargerMatchs);
+        window.addEventListener('DOMContentLoaded', initialiserVantage);
     </script>
 </body>
 </html>
