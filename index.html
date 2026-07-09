@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vantage - Algorithme de Trading Sportif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+    <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-500 text-slate-950 font-black px-2.5 py-1 rounded text-sm tracking-wider">VNTG</div>
+                <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">VANTAGE</span>
+            </div>
+            <div class="flex items-center space-x-6 text-sm font-medium text-slate-400">
+                <a href="#" class="text-emerald-400 border-b-2 border-emerald-400 py-5">Dashboard Live</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-12">
+        
+        <div class="mb-10">
+            <div class="flex items-center space-x-2 text-emerald-400 text-xs font-semibold tracking-wider uppercase mb-2">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Connecté à Supabase</span>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight text-white sm:text-4xl">Opportunités du Jour</h1>
+            <p class="mt-2 text-sm text-slate-400">Analyses récupérées en temps réel depuis le coffre-fort de données.</p>
+        </div>
+
+        <div id="match-container" class="grid gap-6 md:grid-cols-2">
+            <p class="text-slate-400 animate-pulse">Chargement de l'algorithme Vantage...</p>
+        </div>
+    </main>
+
+    <script>
+        // Tes clés d'accès publiques (Les mêmes que dans Python)
+        const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function chargerMatchs() {
+            const container = document.getElementById('match-container');
+            
+            try {
+                // On récupère la date d'aujourd'hui au format YYYY-MM-DD
+                const aujourdhui = new Date().toISOString().split('T')[0];
+                
+                // Appel à ta table Supabase
+                const { data, error } = await supabase
+                    .from('historical_predictions')
+                    .select('*')
+                    .eq('match_date', aujourdhui)
+                    .order('is_value', { ascending: false }); // Met les Value Bets en premier
+
+                if (error) throw error;
+
+                // On vide le texte de chargement
+                container.innerHTML = '';
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p class="text-slate-400">Aucun match scanné pour le moment aujourd\'hui.</p>';
+                    return;
+                }
+
+                // Pour chaque match trouvé, on crée une carte HTML
+                data.forEach(match => {
+                    const isValue = match.is_value;
+                    const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
+                    const iaColor = isValue ? 'text-emerald-400' : 'text-slate-400';
+                    
+                    const badgeValue = isValue 
+                        ? `<div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg px-4 py-2.5 text-xs font-semibold">
+                                <span>Probabilité IA : <span class="font-mono font-bold">${match.proba_ia}%</span></span>
+                                <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">🔥 Value Bet</span>
+                           </div>`
+                        : `<div class="bg-slate-900/40 border border-slate-800 text-slate-500 rounded-lg py-2.5 text-center text-xs font-medium">
+                                Aucun avantage mathématique détecté
+                           </div>`;
+
+                    const htmlCarte = `
+                        <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 backdrop-blur flex flex-col justify-between transition-all duration-300">
+                            <div>
+                                <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
+                                    <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🏆 ${match.tournament}</span>
+                                </div>
+                                <div class="space-y-2 mb-6">
+                                    <div class="flex justify-between items-center text-lg font-semibold text-white">
+                                        <span>${match.player_a}</span>
+                                    </div>
+                                    <div class="text-xs text-slate-500 font-bold px-1">VS</div>
+                                    <div class="flex justify-between items-center text-lg font-semibold text-slate-300">
+                                        <span>${match.player_b}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-700/50 pt-4 bg-slate-800/20 -mx-6 -mb-6 p-6 rounded-b-xl">
+                                <div class="grid grid-cols-2 gap-4 text-center mb-4">
+                                    <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
+                                        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote Bookmaker</div>
+                                        <div class="text-xl font-mono font-bold text-white">${match.odds_bookmaker}</div>
+                                    </div>
+                                    <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
+                                        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote IA Vantage</div>
+                                        <div class="text-xl font-mono font-bold ${iaColor}">${match.odds_ia}</div>
+                                    </div>
+                                </div>
+                                ${badgeValue}
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += htmlCarte;
+                });
+
+            } catch (err) {
+                console.error("Erreur :", err);
+                container.innerHTML = '<p class="text-red-400">Erreur de connexion à Supabase. Vérifie les permissions (RLS) de ta table.</p>';
+            }
+        }
+
+        // Lancement de la fonction dès que la page est chargée
+        window.addEventListener('DOMContentLoaded', chargerMatchs);
+    </script>
+</body>
+</html>
