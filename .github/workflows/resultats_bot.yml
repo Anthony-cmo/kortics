@@ -1,0 +1,21 @@
+name: Validation des Résultats du Soir
+
+on:
+  schedule:
+    - cron: '30 21 * * *'  # 21h30 UTC, soit 23h30 en France
+  workflow_dispatch:
+
+jobs:
+  execution:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Recuperation du code
+        uses: actions/checkout@v4
+      - name: 2. Installation de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: 3. Installation des connecteurs
+        run: pip install supabase requests
+      - name: 4. Lancement de la validation
+        run: python resultats_bot.py
