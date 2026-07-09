@@ -44,39 +44,41 @@
         </div>
     </main>
 
-   <script>
-        // Tes clés d'accès publiques
-        const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
-        
-        // CORRECTION : On l'appelle supabaseClient pour éviter le court-circuit
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+  <script>
         async function chargerMatchs() {
             const container = document.getElementById('match-container');
             
             try {
-                // On récupère la date d'aujourd'hui
+                // 1. Vérification si Supabase est bloqué par le navigateur
+                if (typeof supabase === 'undefined') {
+                    throw new Error("La librairie Supabase est introuvable. As-tu un bloqueur de pub actif (AdBlock/Brave) ?");
+                }
+
+                // 2. Connexion
+                const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
+                const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
+                const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                
+                // 3. Récupération de la date
                 const aujourdhui = new Date().toISOString().split('T')[0];
                 
-                // Appel à ta table Supabase
+                // 4. Appel à la base de données
                 const { data, error } = await supabaseClient
                     .from('historical_predictions')
                     .select('*')
                     .eq('match_date', aujourdhui)
                     .order('is_value', { ascending: false });
 
-                if (error) throw error;
+                if (error) throw new Error("Refus de Supabase : " + error.message);
 
-                // On vide le texte de chargement
-                container.innerHTML = '';
+                container.innerHTML = ''; // On efface le message de chargement
 
                 if (data.length === 0) {
-                    container.innerHTML = '<p class="text-slate-400 col-span-2 text-center py-10">Aucun match scanné pour le moment aujourd\'hui. Soit le robot dort encore, soit aucun tournoi ATP majeur n\'est programmé.</p>';
+                    container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match trouvé pour la date du ${aujourdhui}. Vérifie sur Supabase si le robot a bien tourné pour aujourd'hui !</p>`;
                     return;
                 }
 
-                // Création des cartes
+                // 5. Affichage des cartes
                 data.forEach(match => {
                     const isValue = match.is_value;
                     const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
@@ -126,8 +128,11 @@
                 });
 
             } catch (err) {
-                console.error("Erreur :", err);
-                container.innerHTML = '<p class="text-red-400 col-span-2">Erreur de connexion. Si l\'erreur persiste, vérifie que le RLS est bien désactivé sur Supabase.</p>';
+                // L'AFFICHAGE DU CRASH EN ROUGE
+                container.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">
+                    <h3 class="font-bold text-lg mb-2">🚨 Le site a rencontré un problème :</h3>
+                    <p class="font-mono text-sm">${err.message}</p>
+                </div>`;
             }
         }
 
