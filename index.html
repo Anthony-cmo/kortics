@@ -44,25 +44,27 @@
         </div>
     </main>
 
-    <script>
-        // Tes clés d'accès publiques (Les mêmes que dans Python)
+   <script>
+        // Tes clés d'accès publiques
         const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // CORRECTION : On l'appelle supabaseClient pour éviter le court-circuit
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function chargerMatchs() {
             const container = document.getElementById('match-container');
             
             try {
-                // On récupère la date d'aujourd'hui au format YYYY-MM-DD
+                // On récupère la date d'aujourd'hui
                 const aujourdhui = new Date().toISOString().split('T')[0];
                 
                 // Appel à ta table Supabase
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('historical_predictions')
                     .select('*')
                     .eq('match_date', aujourdhui)
-                    .order('is_value', { ascending: false }); // Met les Value Bets en premier
+                    .order('is_value', { ascending: false });
 
                 if (error) throw error;
 
@@ -70,11 +72,11 @@
                 container.innerHTML = '';
 
                 if (data.length === 0) {
-                    container.innerHTML = '<p class="text-slate-400">Aucun match scanné pour le moment aujourd\'hui.</p>';
+                    container.innerHTML = '<p class="text-slate-400 col-span-2 text-center py-10">Aucun match scanné pour le moment aujourd\'hui. Soit le robot dort encore, soit aucun tournoi ATP majeur n\'est programmé.</p>';
                     return;
                 }
 
-                // Pour chaque match trouvé, on crée une carte HTML
+                // Création des cartes
                 data.forEach(match => {
                     const isValue = match.is_value;
                     const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
@@ -125,11 +127,10 @@
 
             } catch (err) {
                 console.error("Erreur :", err);
-                container.innerHTML = '<p class="text-red-400">Erreur de connexion à Supabase. Vérifie les permissions (RLS) de ta table.</p>';
+                container.innerHTML = '<p class="text-red-400 col-span-2">Erreur de connexion. Si l\'erreur persiste, vérifie que le RLS est bien désactivé sur Supabase.</p>';
             }
         }
 
-        // Lancement de la fonction dès que la page est chargée
         window.addEventListener('DOMContentLoaded', chargerMatchs);
     </script>
 </body>
