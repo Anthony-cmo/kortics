@@ -115,24 +115,22 @@ def main():
         nom_tournoi = m.get("tournament_name") or m.get("league_name") or m.get("event_tournament") or "Tournoi ATP"
         nom_tournoi_lower = nom_tournoi.lower()
         
-        # ❌ FILTRE 1 : Exclure impérativement les femmes (WTA)
-        if "wta" in nom_tournoi_lower or "women" in nom_tournoi_lower or "femmes" in nom_tournoi_lower:
+       # 🟢 FILTRES VANTAGE PRIME (WTA DÉFENSIF)
+        
+        # 1. Exclure impérativement les hommes (ATP)
+        if "atp" in nom_tournoi_lower or "men" in nom_tournoi_lower or "hommes" in nom_tournoi_lower:
             continue
             
-        # ❌ FILTRE 2 : Exclure impérativement les circuits secondaires (Challenger, ITF)
-        if "challenger" in nom_tournoi_lower or "itf" in nom_tournoi_lower:
+        # 2. Exclure les circuits secondaires et qualifications
+        if "challenger" in nom_tournoi_lower or "itf" in nom_tournoi_lower or "qualif" in nom_tournoi_lower:
             continue
-            
-        # ✅ FILTRE 3 : Valider uniquement les tournois majeurs
-        majeurs_keywords = ["atp 250", "atp 500", "atp 1000", "masters 1000", "grand slam", "grand chelem", "wimbledon", "roland garros", "us open", "australian open"]
+
+        # 3. Valider uniquement les tournois majeurs féminins et Grands Chelems
+        majeurs_keywords = ["wta", "grand slam", "grand chelem", "wimbledon", "roland garros", "us open", "australian open"]
         is_majeur = any(kw in nom_tournoi_lower for kw in majeurs_keywords)
         
-        # Si le tournoi contient simplement "atp" (ex: "ATP Rome"), c'est valide
-        if "atp" in nom_tournoi_lower:
-            is_majeur = True
-            
         if not is_majeur:
-            continue # Si ce n'est pas un grand tournoi, on passe au suivant
+            continue
             
         # Récupération des cotes du bookmaker
         cote_bookmaker_1 = float(m.get("odds_first_player") or 0.0)
