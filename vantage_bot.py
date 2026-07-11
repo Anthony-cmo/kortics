@@ -112,7 +112,7 @@ def main():
     compteur_pousses = 0
     
     for m in matchs:
-       nom_tournoi = m.get("tournament_name") or m.get("league_name") or m.get("event_tournament") or "Tournoi ATP"
+        nom_tournoi = m.get("tournament_name") or m.get("league_name") or m.get("event_tournament") or "Tournoi ATP"
         nom_tournoi_lower = nom_tournoi.lower()
         
         # ❌ FILTRE 1 : Exclure impérativement les femmes (WTA)
