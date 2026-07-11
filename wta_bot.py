@@ -176,14 +176,14 @@ def main():
             lignes_a_pousser.append({
                 "match_date": aujourdhui, "tournament": nom_tournoi, "player_a": joueur_1, "player_b": joueur_2,
                 "odds_bookmaker": cote_bookmaker_1, "odds_ia": cote_ia_j1, "proba_ia": proba_j1, "is_value": True,
-                "match_status": "En attente", "profit_loss": 0.0
+                "match_status": "En attente", "circuit": "WTA", "profit_loss": 0.0
             })
             
         if is_value_j2:
             lignes_a_pousser.append({
                 "match_date": aujourdhui, "tournament": nom_tournoi, "player_a": joueur_1, "player_b": joueur_2,
                 "odds_bookmaker": cote_bookmaker_2, "odds_ia": cote_ia_j2, "proba_ia": proba_j2, "is_value": True,
-                "match_status": "En attente", "profit_loss": 0.0
+                "match_status": "En attente", "circuit": "WTA", "profit_loss": 0.0
             })
             
         # Si aucun des deux n'est un Value Bet, on garde une trace neutre sur le Joueur 1 pour l'historique global
@@ -191,7 +191,7 @@ def main():
             lignes_a_pousser.append({
                 "match_date": aujourdhui, "tournament": nom_tournoi, "player_a": joueur_1, "player_b": joueur_2,
                 "odds_bookmaker": cote_bookmaker_1, "odds_ia": cote_ia_j1, "proba_ia": proba_j1, "is_value": False,
-                "match_status": "En attente", "circuit": "ATP"", profit_loss": 0.0
+                "match_status": "En attente", "circuit": "WTA", "profit_loss": 0.0
             })
             
         # Envoi dans le coffre-fort Supabase
