@@ -25,8 +25,19 @@
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 py-10">
+    <main class="max-w-6xl mx-auto px-4 py-8">
         
+        <div class="flex justify-center mb-10">
+            <div class="bg-slate-800/60 p-1.5 rounded-lg inline-flex border border-slate-700/60 backdrop-blur">
+                <button id="btn-core" onclick="changerCircuit('ATP')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-emerald-500 text-slate-900 shadow-sm">
+                    Vantage Core (ATP)
+                </button>
+                <button id="btn-prime" onclick="changerCircuit('WTA')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white">
+                    Vantage Prime (WTA)
+                </button>
+            </div>
+        </div>
+
         <div class="mb-14">
             <h2 class="text-lg font-bold text-white mb-6 flex items-center space-x-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
@@ -62,7 +73,7 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span>Analyse Live Élite ATP</span>
+                <span id="titre-live">Analyse Live Élite ATP</span>
             </div>
             <h1 class="text-3xl font-bold tracking-tight text-white">Opportunités du Jour</h1>
         </div>
@@ -73,6 +84,9 @@
     </main>
 
     <script>
+        let donneesGlobales = []; // On stocke toute la base de données ici
+        let circuitActif = 'ATP'; // Le circuit affiché par défaut
+
         async function initialiserVantage() {
             const container = document.getElementById('match-container');
             
@@ -83,7 +97,7 @@
                 const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
                 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 
-                // 1. On récupère ABSOLUMENT TOUT l'historique pour les calculs
+                // On télécharge tout l'historique une seule fois
                 const { data: historique, error } = await supabaseClient
                     .from('historical_predictions')
                     .select('*')
@@ -91,100 +105,8 @@
 
                 if (error) throw new Error("Refus de Supabase : " + error.message);
 
-                // --- PARTIE A : CALCUL DU TABLEAU DE BORD (KPI) ---
-                // On isole uniquement les Value Bets qui ont été clôturés par le robot du soir
-                const parisTermines = historique.filter(m => m.is_value === true && (m.match_status === 'Gagné' || m.match_status === 'Perdu'));
-                const totalParis = parisTermines.length;
-
-                if (totalParis > 0) {
-                    const parisGagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
-                    const winRate = ((parisGagnes / totalParis) * 100).toFixed(1);
-                    
-                    const totalProfit = parisTermines.reduce((somme, m) => somme + (m.profit_loss || 0), 0);
-                    const totalInvesti = totalParis * 10; // 10€ par match
-                    const roi = ((totalProfit / totalInvesti) * 100).toFixed(1);
-
-                    // Mises à jour des couleurs (Vert si positif, Rouge si négatif)
-                    const elProfit = document.getElementById('kpi-profit');
-                    elProfit.innerText = (totalProfit > 0 ? '+' : '') + totalProfit.toFixed(2) + ' €';
-                    if (totalProfit > 0) elProfit.classList.add('text-emerald-400');
-                    else if (totalProfit < 0) elProfit.classList.add('text-red-400');
-
-                    document.getElementById('kpi-winrate').innerText = winRate + ' %';
-
-                    const elRoi = document.getElementById('kpi-roi');
-                    elRoi.innerText = (roi > 0 ? '+' : '') + roi + ' %';
-                    if (roi > 0) elRoi.classList.add('text-emerald-400');
-                    else if (roi < 0) elRoi.classList.add('text-red-400');
-
-                    document.getElementById('kpi-total').innerText = totalParis;
-                } else {
-                    // Si aucun match n'est encore terminé, on laisse à l'état de calibrage
-                    document.getElementById('kpi-profit').innerText = "Calibrage...";
-                    document.getElementById('kpi-profit').classList.add('text-slate-500', 'text-lg');
-                }
-
-                // --- PARTIE B : AFFICHAGE DES MATCHS DU JOUR ---
-                container.innerHTML = ''; // On efface le message de chargement
-                
-                const aujourdhui = new Date().toISOString().split('T')[0];
-                const matchsDuJour = historique.filter(m => m.match_date === aujourdhui);
-
-                // On trie pour mettre les Value Bets en premier
-                matchsDuJour.sort((a, b) => (b.is_value === true) - (a.is_value === true));
-
-                if (matchsDuJour.length === 0) {
-                    container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match détecté pour la date du ${aujourdhui}. L'algorithme est en veille.</p>`;
-                    return;
-                }
-
-                matchsDuJour.forEach(match => {
-                    const isValue = match.is_value;
-                    const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
-                    const iaColor = isValue ? 'text-emerald-400' : 'text-slate-400';
-                    
-                    const badgeValue = isValue 
-                        ? `<div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg px-4 py-2.5 text-xs font-semibold">
-                                <span>Probabilité IA : <span class="font-mono font-bold">${match.proba_ia}%</span></span>
-                                <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">🔥 Value Bet</span>
-                           </div>`
-                        : `<div class="bg-slate-900/40 border border-slate-800 text-slate-500 rounded-lg py-2.5 text-center text-xs font-medium">
-                                Aucun avantage mathématique détecté
-                           </div>`;
-
-                    const htmlCarte = `
-                        <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 backdrop-blur flex flex-col justify-between transition-all duration-300">
-                            <div>
-                                <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
-                                    <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🏆 ${match.tournament}</span>
-                                </div>
-                                <div class="space-y-2 mb-6">
-                                    <div class="flex justify-between items-center text-lg font-semibold text-white">
-                                        <span>${match.player_a}</span>
-                                    </div>
-                                    <div class="text-xs text-slate-500 font-bold px-1">VS</div>
-                                    <div class="flex justify-between items-center text-lg font-semibold text-slate-300">
-                                        <span>${match.player_b}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="border-t border-slate-700/50 pt-4 bg-slate-800/20 -mx-6 -mb-6 p-6 rounded-b-xl">
-                                <div class="grid grid-cols-2 gap-4 text-center mb-4">
-                                    <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
-                                        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote Bookmaker</div>
-                                        <div class="text-xl font-mono font-bold text-white">${match.odds_bookmaker}</div>
-                                    </div>
-                                    <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
-                                        <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote IA Vantage</div>
-                                        <div class="text-xl font-mono font-bold ${iaColor}">${match.odds_ia}</div>
-                                    </div>
-                                </div>
-                                ${badgeValue}
-                            </div>
-                        </div>
-                    `;
-                    container.innerHTML += htmlCarte;
-                });
+                donneesGlobales = historique || [];
+                afficherInterface(); // On lance l'affichage
 
             } catch (err) {
                 container.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">
@@ -192,6 +114,134 @@
                     <p class="font-mono text-sm">${err.message}</p>
                 </div>`;
             }
+        }
+
+        function changerCircuit(circuit) {
+            circuitActif = circuit;
+            afficherInterface();
+        }
+
+        function afficherInterface() {
+            // 1. Mise à jour du style des boutons
+            const btnCore = document.getElementById('btn-core');
+            const btnPrime = document.getElementById('btn-prime');
+            const titreLive = document.getElementById('titre-live');
+            const container = document.getElementById('match-container');
+
+            if (circuitActif === 'ATP') {
+                btnCore.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-emerald-500 text-slate-900 shadow-sm";
+                btnPrime.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
+                titreLive.innerText = "Analyse Live Élite ATP (Core)";
+            } else {
+                btnPrime.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-emerald-500 text-slate-900 shadow-sm";
+                btnCore.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
+                titreLive.innerText = "Analyse Live Défensive WTA (Prime)";
+            }
+
+            // 2. On filtre les données selon le circuit sélectionné
+            const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
+
+            // 3. Calcul du tableau de bord (KPI)
+            const parisTermines = donneesFiltrees.filter(m => m.is_value === true && (m.match_status === 'Gagné' || m.match_status === 'Perdu'));
+            const totalParis = parisTermines.length;
+
+            const elProfit = document.getElementById('kpi-profit');
+            const elWinrate = document.getElementById('kpi-winrate');
+            const elRoi = document.getElementById('kpi-roi');
+            const elTotal = document.getElementById('kpi-total');
+
+            // On nettoie les anciennes couleurs avant de recalculer
+            elProfit.className = "text-2xl font-mono font-bold text-white";
+            elRoi.className = "text-2xl font-mono font-bold text-white";
+
+            if (totalParis > 0) {
+                const parisGagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
+                const winRate = ((parisGagnes / totalParis) * 100).toFixed(1);
+                
+                const totalProfit = parisTermines.reduce((somme, m) => somme + (m.profit_loss || 0), 0);
+                const totalInvesti = totalParis * 10;
+                const roi = ((totalProfit / totalInvesti) * 100).toFixed(1);
+
+                elProfit.innerText = (totalProfit > 0 ? '+' : '') + totalProfit.toFixed(2) + ' €';
+                if (totalProfit > 0) elProfit.classList.add('text-emerald-400');
+                else if (totalProfit < 0) elProfit.classList.add('text-red-400');
+
+                elWinrate.innerText = winRate + ' %';
+
+                elRoi.innerText = (roi > 0 ? '+' : '') + roi + ' %';
+                if (roi > 0) elRoi.classList.add('text-emerald-400');
+                else if (roi < 0) elRoi.classList.add('text-red-400');
+
+                elTotal.innerText = totalParis;
+            } else {
+                elProfit.innerText = "Calibrage...";
+                elProfit.className = "text-lg font-bold text-slate-500 mt-1";
+                elWinrate.innerText = "-- %";
+                elRoi.innerText = "-- %";
+                elTotal.innerText = "0";
+            }
+
+            // 4. Affichage des matchs du jour
+            container.innerHTML = ''; 
+            
+            const aujourdhui = new Date().toISOString().split('T')[0];
+            const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
+
+            // On trie pour mettre les Value Bets en premier
+            matchsDuJour.sort((a, b) => (b.is_value === true) - (a.is_value === true));
+
+            if (matchsDuJour.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match du circuit ${circuitActif} détecté pour aujourd'hui.</p>`;
+                return;
+            }
+
+            matchsDuJour.forEach(match => {
+                const isValue = match.is_value;
+                const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
+                const iaColor = isValue ? 'text-emerald-400' : 'text-slate-400';
+                
+                const badgeValue = isValue 
+                    ? `<div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg px-4 py-2.5 text-xs font-semibold">
+                            <span>Probabilité IA : <span class="font-mono font-bold">${match.proba_ia}%</span></span>
+                            <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">🔥 Value Bet</span>
+                       </div>`
+                    : `<div class="bg-slate-900/40 border border-slate-800 text-slate-500 rounded-lg py-2.5 text-center text-xs font-medium">
+                            Aucun avantage mathématique détecté
+                       </div>`;
+
+                const htmlCarte = `
+                    <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 backdrop-blur flex flex-col justify-between transition-all duration-300">
+                        <div>
+                            <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
+                                <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🏆 ${match.tournament}</span>
+                            </div>
+                            <div class="space-y-2 mb-6">
+                                <div class="flex justify-between items-center text-lg font-semibold text-white">
+                                    <span>${match.player_a}</span>
+                                </div>
+                                <div class="text-xs text-slate-500 font-bold px-1">VS</div>
+                                <div class="flex justify-between items-center text-lg font-semibold text-slate-300">
+                                    <span>${match.player_b}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-700/50 pt-4 bg-slate-800/20 -mx-6 -mb-6 p-6 rounded-b-xl">
+                            <div class="grid grid-cols-2 gap-4 text-center mb-4">
+                                <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote Bookmaker</div>
+                                    <div class="text-xl font-mono font-bold text-white">${match.odds_bookmaker}</div>
+                                </div>
+                                <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
+                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote IA Vantage</div>
+                                    <div class="text-xl font-mono font-bold ${iaColor}">${match.odds_ia}</div>
+                                </div>
+                            </div>
+                            ${badgeValue}
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += htmlCarte;
+            });
         }
 
         window.addEventListener('DOMContentLoaded', initialiserVantage);
