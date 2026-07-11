@@ -136,6 +136,10 @@ def main():
         cote_bookmaker_1 = float(m.get("odds_first_player") or 0.0)
         cote_bookmaker_2 = float(m.get("odds_second_player") or 0.0)
         
+        # 🛡️ BOUCLIER DÉFENSIF VANTAGE PRIME : Au moins une joueuse doit être une immense favorite
+        if cote_bookmaker_1 > 1.20 and cote_bookmaker_2 > 1.20:
+            continue
+            
         # Si pas de cotes disponibles, le match est inexploitable
         if cote_bookmaker_1 == 0.0 or cote_bookmaker_2 == 0.0:
             continue
