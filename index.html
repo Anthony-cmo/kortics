@@ -19,8 +19,9 @@
                 <div class="bg-emerald-500 text-slate-950 font-black px-2.5 py-1 rounded text-sm tracking-wider">VNTG</div>
                 <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">VANTAGE</span>
             </div>
-            <div class="flex items-center space-x-6 text-sm font-medium text-slate-400">
-                <a href="#" class="text-emerald-400 border-b-2 border-emerald-400 py-5">Dashboard Live</a>
+            <div class="flex items-center space-x-4">
+                <a href="#vip" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-semibold py-2 px-4 rounded transition-colors">Connexion</a>
+                <a href="#vip" class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-bold py-2 px-4 rounded shadow-[0_0_10px_rgba(16,185,129,0.3)] transition-all">Devenir VIP</a>
             </div>
         </div>
     </nav>
@@ -41,7 +42,7 @@
         <div class="mb-14">
             <h2 class="text-lg font-bold text-white mb-6 flex items-center space-x-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                <span>Performances de l'Algorithme</span>
+                <span>Performances Globales Vérifiées</span>
             </h2>
             
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -62,7 +63,7 @@
                     <div id="kpi-total" class="text-2xl font-mono font-bold text-white">--</div>
                 </div>
             </div>
-            <p class="text-xs text-slate-500 mt-3">*Bilan calculé automatiquement sur la base de mises fixes fictives de 10€ par match.</p>
+            <p class="text-xs text-slate-500 mt-3">*Résultats calculés en direct depuis la base de données. Historique 100% transparent.</p>
         </div>
 
         <hr class="border-slate-800 mb-10">
@@ -73,19 +74,23 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span id="titre-live">Analyse Live Élite ATP</span>
+                <span id="titre-live">Analyse Live en cours...</span>
             </div>
             <h1 class="text-3xl font-bold tracking-tight text-white">Opportunités du Jour</h1>
         </div>
 
-        <div id="match-container" class="grid gap-6 md:grid-cols-2">
-            <p class="text-slate-400 animate-pulse">Chargement de l'algorithme Vantage...</p>
+        <div id="match-container" class="grid gap-6 md:grid-cols-2 relative">
+            <p class="text-slate-400 animate-pulse">Chargement du coffre-fort Vantage...</p>
         </div>
+        
     </main>
 
     <script>
-        let donneesGlobales = []; // On stocke toute la base de données ici
-        let circuitActif = 'ATP'; // Le circuit affiché par défaut
+        let donneesGlobales = []; 
+        let circuitActif = 'ATP'; 
+        
+        // 🔒 VARIABLE VIP : Met à "true" pour tout débloquer, "false" pour flouter
+        let isVIP = false; 
 
         async function initialiserVantage() {
             const container = document.getElementById('match-container');
@@ -97,7 +102,6 @@
                 const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
                 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 
-                // On télécharge tout l'historique une seule fois
                 const { data: historique, error } = await supabaseClient
                     .from('historical_predictions')
                     .select('*')
@@ -106,7 +110,7 @@
                 if (error) throw new Error("Refus de Supabase : " + error.message);
 
                 donneesGlobales = historique || [];
-                afficherInterface(); // On lance l'affichage
+                afficherInterface(); 
 
             } catch (err) {
                 container.innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">
@@ -122,26 +126,25 @@
         }
 
         function afficherInterface() {
-            // 1. Mise à jour du style des boutons
+            // 1. Boutons
             const btnCore = document.getElementById('btn-core');
             const btnPrime = document.getElementById('btn-prime');
             const titreLive = document.getElementById('titre-live');
-            const container = document.getElementById('match-container');
 
             if (circuitActif === 'ATP') {
                 btnCore.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-emerald-500 text-slate-900 shadow-sm";
                 btnPrime.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
-                titreLive.innerText = "Analyse Live Élite ATP (Core)";
+                titreLive.innerText = "Scanner Élite ATP Actif";
             } else {
                 btnPrime.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-emerald-500 text-slate-900 shadow-sm";
                 btnCore.className = "px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
-                titreLive.innerText = "Analyse Live Défensive WTA (Prime)";
+                titreLive.innerText = "Bouclier Défensif WTA Actif";
             }
 
-            // 2. On filtre les données selon le circuit sélectionné
+            // 2. Filtre
             const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
 
-            // 3. Calcul du tableau de bord (KPI)
+            // 3. Calculs KPI
             const parisTermines = donneesFiltrees.filter(m => m.is_value === true && (m.match_status === 'Gagné' || m.match_status === 'Perdu'));
             const totalParis = parisTermines.length;
 
@@ -150,7 +153,6 @@
             const elRoi = document.getElementById('kpi-roi');
             const elTotal = document.getElementById('kpi-total');
 
-            // On nettoie les anciennes couleurs avant de recalculer
             elProfit.className = "text-2xl font-mono font-bold text-white";
             elRoi.className = "text-2xl font-mono font-bold text-white";
 
@@ -167,61 +169,76 @@
                 else if (totalProfit < 0) elProfit.classList.add('text-red-400');
 
                 elWinrate.innerText = winRate + ' %';
-
                 elRoi.innerText = (roi > 0 ? '+' : '') + roi + ' %';
                 if (roi > 0) elRoi.classList.add('text-emerald-400');
                 else if (roi < 0) elRoi.classList.add('text-red-400');
 
                 elTotal.innerText = totalParis;
-            } else {
-                elProfit.innerText = "Calibrage...";
-                elProfit.className = "text-lg font-bold text-slate-500 mt-1";
-                elWinrate.innerText = "-- %";
-                elRoi.innerText = "-- %";
-                elTotal.innerText = "0";
             }
 
-            // 4. Affichage des matchs du jour
+            // 4. Affichage des matchs
+            const container = document.getElementById('match-container');
             container.innerHTML = ''; 
             
             const aujourdhui = new Date().toISOString().split('T')[0];
             const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
-
-            // On trie pour mettre les Value Bets en premier
             matchsDuJour.sort((a, b) => (b.is_value === true) - (a.is_value === true));
 
             if (matchsDuJour.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 col-span-2 text-center py-10">Aucun match du circuit ${circuitActif} détecté pour aujourd'hui.</p>`;
+                container.innerHTML = `<div class="col-span-2 text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400">Le robot n'a pas encore validé de matchs pour le ${aujourdhui}.</p></div>`;
                 return;
             }
 
             matchsDuJour.forEach(match => {
                 const isValue = match.is_value;
+                
+                // GESTION DU FLOUTAGE (Si Value Bet et Non-VIP)
+                let showTeaser = isValue && !isVIP;
+                
+                let playerA = showTeaser ? '<span class="blur-md select-none text-slate-500">Joueur Masqué A</span>' : match.player_a;
+                let playerB = showTeaser ? '<span class="blur-md select-none text-slate-500">Joueur Masqué B</span>' : match.player_b;
+                let coteBook = showTeaser ? '<span class="blur-sm select-none">?.??</span>' : match.odds_bookmaker;
+                let coteIA = showTeaser ? '<span class="blur-sm select-none">?.??</span>' : match.odds_ia;
+                let proba = showTeaser ? '<span class="blur-sm select-none">??%</span>' : match.proba_ia + '%';
+
                 const borderClass = isValue ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-slate-700/60 opacity-60';
                 const iaColor = isValue ? 'text-emerald-400' : 'text-slate-400';
                 
                 const badgeValue = isValue 
                     ? `<div class="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg px-4 py-2.5 text-xs font-semibold">
-                            <span>Probabilité IA : <span class="font-mono font-bold">${match.proba_ia}%</span></span>
+                            <span>Probabilité IA : <span class="font-mono font-bold">${proba}</span></span>
                             <span class="bg-emerald-500 text-slate-950 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider">🔥 Value Bet</span>
                        </div>`
                     : `<div class="bg-slate-900/40 border border-slate-800 text-slate-500 rounded-lg py-2.5 text-center text-xs font-medium">
-                            Aucun avantage mathématique détecté
+                            Match surveillé (Pas d'avantage)
                        </div>`;
 
+                // LE CADENAS GÉANT (Apparaît par-dessus la carte)
+                const overlayTeaser = showTeaser 
+                    ? `<div class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-[3px] rounded-xl border border-emerald-500/30">
+                            <svg class="w-10 h-10 text-emerald-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            <h3 class="text-white font-bold text-lg mb-1">Pronostic Verrouillé</h3>
+                            <p class="text-slate-300 text-xs mb-4 text-center px-4">L'algorithme a détecté une faille de cote sur ce match.</p>
+                            <a href="#vip" class="bg-gradient-to-r from-emerald-500 to-emerald-400 text-slate-900 font-bold py-2 px-6 rounded-full text-sm shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:scale-105 transition-transform">
+                                🔓 Accès Premium
+                            </a>
+                       </div>` 
+                    : '';
+
                 const htmlCarte = `
-                    <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 backdrop-blur flex flex-col justify-between transition-all duration-300">
+                    <div class="relative bg-slate-800/40 border ${borderClass} rounded-xl p-6 flex flex-col justify-between transition-all duration-300 overflow-hidden">
+                        ${overlayTeaser}
                         <div>
                             <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
                                 <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🏆 ${match.tournament}</span>
                             </div>
                             <div class="space-y-2 mb-6">
                                 <div class="flex justify-between items-center text-lg font-semibold text-white">
-                                    <span>${match.player_a}</span>
+                                    <span>${playerA}</span>
                                 </div>
                                 <div class="text-xs text-slate-500 font-bold px-1">VS</div>
                                 <div class="flex justify-between items-center text-lg font-semibold text-slate-300">
-                                    <span>${match.player_b}</span>
+                                    <span>${playerB}</span>
                                 </div>
                             </div>
                         </div>
@@ -229,11 +246,11 @@
                             <div class="grid grid-cols-2 gap-4 text-center mb-4">
                                 <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
                                     <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote Bookmaker</div>
-                                    <div class="text-xl font-mono font-bold text-white">${match.odds_bookmaker}</div>
+                                    <div class="text-xl font-mono font-bold text-white">${coteBook}</div>
                                 </div>
                                 <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
                                     <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote IA Vantage</div>
-                                    <div class="text-xl font-mono font-bold ${iaColor}">${match.odds_ia}</div>
+                                    <div class="text-xl font-mono font-bold ${iaColor}">${coteIA}</div>
                                 </div>
                             </div>
                             ${badgeValue}
