@@ -220,6 +220,22 @@
 
         function changerCircuit(circuit){ circuitActif=circuit; afficherInterface(); }
 
+        // Cote "juste valeur" de notre favori + détection value (marché >= notre estimation +10%)
+        function analyseFavori(m) {
+            const favoriA = m.proba_ia >= 50;
+            const pickProba = favoriA ? m.proba_ia : (100 - m.proba_ia);
+            const coteJuste = pickProba > 0 ? (100 / pickProba) : null;      // 1 / proba du favori
+            const coteMarche = favoriA ? m.odds_bookmaker : m.odds_b;         // cote marché du favori
+            const isValue = !!(coteMarche && coteJuste && coteMarche >= coteJuste * 1.10);
+            return {
+                favoriA,
+                pickNom: favoriA ? m.player_a : m.player_b,
+                pickProba,
+                coteJuste,
+                isValue,
+            };
+        }
+
         function afficherInterface() {
             const btnCore=document.getElementById('btn-core'), btnPrime=document.getElementById('btn-prime'), titreLive=document.getElementById('titre-live');
             const on="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm";
@@ -266,7 +282,7 @@
             container.innerHTML = '';
             const aujourdhui = new Date().toISOString().split('T')[0];
             const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
-            matchsDuJour.sort((a,b)=> (b.is_value===true)-(a.is_value===true));
+            matchsDuJour.sort((a,b)=> analyseFavori(b).isValue - analyseFavori(a).isValue);
 
             if (matchsDuJour.length === 0) {
                 container.innerHTML = `<div class="col-span-2 text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400">Aucun match analysé pour aujourd'hui pour le moment.</p></div>`;
@@ -277,14 +293,12 @@
             // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
             matchsDuJour.forEach((match, index) => {
                 const analyseVisible = isPremium || index === 0;      // 1 analyse offerte / jour
-                const isValue = match.is_value;
-                const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
+                const analyseFiable = match.circuit === 'ATP';        // pas encore de modèle WTA
 
-                // Notre favori = joueur le plus probable (proba_ia = proba que le joueur A gagne)
-                const analyseFiable = match.circuit === 'ATP';   // pas encore de modèle WTA
-                const favoriA = match.proba_ia >= 50;
-                const pickNom = favoriA ? match.player_a : match.player_b;
-                const pickProba = favoriA ? match.proba_ia : (100 - match.proba_ia);
+                // Notre favori + sa cote juste + value (cohérents avec le joueur affiché)
+                const { favoriA, pickNom, pickProba, coteJuste, isValue: valueBrut } = analyseFavori(match);
+                const isValue = valueBrut && analyseFiable;           // value seulement là où le modèle est fiable
+                const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
                 let analyseBox;
                 if (!analyseFiable) {
@@ -297,7 +311,7 @@
                            </div>
                            <div class="text-right shrink-0">
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
-                               <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${match.odds_ia ?? '—'}</div>
+                               <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${coteJuste ? coteJuste.toFixed(2) : '—'}</div>
                            </div>
                        </div>`;
                 } else {
