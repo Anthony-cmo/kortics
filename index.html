@@ -91,6 +91,7 @@
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Bilan (mise à plat)</div><div id="kpi-profit" class="text-2xl font-mono font-bold text-white">-- u</div></div>
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">ROI (transparent)</div><div id="kpi-roi" class="text-2xl font-mono font-bold text-white">-- %</div></div>
             </div>
+            <div id="circuit-note" class="hidden mt-4 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200/90 rounded-lg px-4 py-3 leading-relaxed"></div>
         </div>
 
         <hr class="border-slate-800 mb-10">
@@ -226,6 +227,14 @@
             if (circuitActif==='ATP'){ btnCore.className=on; btnPrime.className=off; titreLive.innerText="Circuit ATP (hommes)"; }
             else { btnPrime.className=on; btnCore.className=off; titreLive.innerText="Circuit WTA (femmes)"; }
 
+            const note = document.getElementById('circuit-note');
+            if (circuitActif === 'WTA') {
+                note.classList.remove('hidden');
+                note.innerHTML = "⚠️ <b>Modèle WTA en cours de calibration.</b> Nous n'avons pas encore l'historique WTA complet : les analyses WTA sont affichées à titre indicatif et leur performance n'est pas encore mesurée. Le modèle ATP, lui, est pleinement actif.";
+            } else {
+                note.classList.add('hidden');
+            }
+
             const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
             // Performance = favori du modèle, sur TOUS les matchs terminés (mise à plat 1 u).
             const parisTermines = donneesFiltrees.filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu');
@@ -272,12 +281,16 @@
                 const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
                 // Notre favori = joueur le plus probable (proba_ia = proba que le joueur A gagne)
+                const analyseFiable = match.circuit === 'ATP';   // pas encore de modèle WTA
                 const favoriA = match.proba_ia >= 50;
                 const pickNom = favoriA ? match.player_a : match.player_b;
                 const pickProba = favoriA ? match.proba_ia : (100 - match.proba_ia);
 
-                const analyseBox = analyseVisible
-                    ? `<div class="flex items-center justify-between gap-3">
+                let analyseBox;
+                if (!analyseFiable) {
+                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1"><span class="text-sm">🛠️ Analyse WTA en cours de calibration</span></div>`;
+                } else if (analyseVisible) {
+                    analyseBox = `<div class="flex items-center justify-between gap-3">
                            <div class="min-w-0">
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
                                <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
@@ -286,12 +299,14 @@
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
                                <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${match.odds_ia ?? '—'}</div>
                            </div>
-                       </div>`
-                    : `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
+                       </div>`;
+                } else {
+                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
                            <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
                        </div>`;
+                }
 
-                const ctaPremium = !analyseVisible
+                const ctaPremium = (analyseFiable && !analyseVisible)
                     ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400">
                             ${sessionActuelle
                                 ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium pour voir</a>`
