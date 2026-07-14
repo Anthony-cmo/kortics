@@ -192,13 +192,18 @@
             if(!email||!password) return afficherErreur("Remplissez tous les champs.");
             const { error } = await supabaseClient.auth.signUp({ email, password });
             if (error) afficherErreur(error.message);
-            else afficherSucces("Compte créé ! Vous pouvez maintenant vous connecter.");
+            else afficherSucces("Compte créé ! Vérifie ta boîte mail : clique sur le lien de confirmation, puis connecte-toi.");
         }
         async function seConnecter() {
             const email=document.getElementById('email-input').value, password=document.getElementById('password-input').value;
             if(!email||!password) return afficherErreur("Remplissez tous les champs.");
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) afficherErreur("Identifiants incorrects.");
+            if (error) {
+                const m = (error.message || '').toLowerCase();
+                if (m.includes('not confirmed')) afficherErreur("Ton email n'est pas encore confirmé. Ouvre le mail de Kortics (pense aux spams) et clique sur le lien de validation.");
+                else if (m.includes('invalid login')) afficherErreur("Email ou mot de passe incorrect.");
+                else afficherErreur(error.message);
+            }
             else { fermerModal(); verifierSession(); }
         }
         async function seDeconnecter() { await supabaseClient.auth.signOut(); verifierSession(); }
