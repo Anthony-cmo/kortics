@@ -230,7 +230,7 @@
             const note = document.getElementById('circuit-note');
             if (circuitActif === 'WTA') {
                 note.classList.remove('hidden');
-                note.innerHTML = "⚠️ <b>Modèle WTA en cours de calibration.</b> Nous n'avons pas encore l'historique WTA complet : les analyses WTA sont affichées à titre indicatif et leur performance n'est pas encore mesurée. Le modèle ATP, lui, est pleinement actif.";
+                note.innerHTML = "🔜 <b>Modèle WTA — bientôt disponible.</b> Nous affichons déjà les matchs WTA (joueuses, cotes du marché), mais <b>notre analyse n'est pas encore en ligne pour la WTA</b> : elle arrivera prochainement, une fois l'historique WTA intégré. Le modèle ATP, lui, est pleinement actif.";
             } else {
                 note.classList.add('hidden');
             }
@@ -288,7 +288,7 @@
 
                 let analyseBox;
                 if (!analyseFiable) {
-                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1"><span class="text-sm">🛠️ Analyse WTA en cours de calibration</span></div>`;
+                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1"><span class="text-sm">🔜 Analyse WTA bientôt disponible</span></div>`;
                 } else if (analyseVisible) {
                     analyseBox = `<div class="flex items-center justify-between gap-3">
                            <div class="min-w-0">
@@ -352,7 +352,10 @@
                 .slice(0, 25);
 
             if (termines.length === 0) {
-                box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.</p></div>`;
+                const msg = circuitActif === 'WTA'
+                    ? "Le suivi des résultats WTA arrivera avec le modèle WTA (bientôt). Les matchs WTA restent affichés ci-dessus."
+                    : "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
+                box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">${msg}</p></div>`;
                 return;
             }
 
