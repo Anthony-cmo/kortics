@@ -302,13 +302,23 @@
 
                 // Notre favori + sa cote juste + value (cohérents avec le joueur affiché)
                 const { favoriA, pickNom, pickProba, coteJuste, isValue: valueBrut } = analyseFavori(match);
-                const isValue = valueBrut && analyseFiable;           // value seulement là où le modèle est fiable
+                const serre = analyseFiable && pickProba <= 51;       // ~50/50 : pas de favori net
+                const isValue = valueBrut && analyseFiable && !serre; // value seulement si modèle fiable ET avis tranché
                 const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
                 let analyseBox;
                 if (!analyseFiable) {
                     analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1"><span class="text-sm">🔜 Analyse WTA bientôt disponible</span></div>`;
-                } else if (analyseVisible) {
+                } else if (!analyseVisible) {
+                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
+                           <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
+                       </div>`;
+                } else if (serre) {
+                    analyseBox = `<div class="text-center py-1">
+                           <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
+                           <div class="text-base font-bold text-slate-300">⚖️ Match serré — pas de favori net</div>
+                       </div>`;
+                } else {
                     analyseBox = `<div class="flex items-center justify-between gap-3">
                            <div class="min-w-0">
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
@@ -318,10 +328,6 @@
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
                                <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${coteJuste ? coteJuste.toFixed(2) : '—'}</div>
                            </div>
-                       </div>`;
-                } else {
-                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
-                           <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
                        </div>`;
                 }
 
