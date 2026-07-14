@@ -85,9 +85,10 @@
                 <span>Performance réelle — en toute transparence</span>
             </h2>
             <p class="text-xs text-slate-500 mb-6">Résultats passés sur les matchs analysés. Le passé ne garantit pas l'avenir.</p>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Matchs analysés</div><div id="kpi-total" class="text-2xl font-mono font-bold text-white">--</div></div>
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Taux de réussite</div><div id="kpi-winrate" class="text-2xl font-mono font-bold text-white">-- %</div></div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Cote moyenne</div><div id="kpi-cote" class="text-2xl font-mono font-bold text-white">--</div></div>
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Bilan (mise à plat)</div><div id="kpi-profit" class="text-2xl font-mono font-bold text-white">-- u</div></div>
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">ROI (transparent)</div><div id="kpi-roi" class="text-2xl font-mono font-bold text-white">-- %</div></div>
             </div>
@@ -265,18 +266,22 @@
                 const gagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
                 const profit = parisTermines.reduce((s,m)=> s + (m.profit_loss || 0), 0);
                 const roi = (profit / total) * 100;   // mise à plat 1 u par match
+                const cotesFav = parisTermines.map(m => (m.proba_ia >= 50 ? m.odds_bookmaker : m.odds_b)).filter(c => c != null);
+                const coteMoy = cotesFav.length ? (cotesFav.reduce((a,b)=>a+b,0) / cotesFav.length) : null;
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-winrate').innerText = ((gagnes/total)*100).toFixed(1) + ' %';
+                document.getElementById('kpi-cote').innerText = coteMoy ? coteMoy.toFixed(2) : '--';
                 document.getElementById('kpi-profit').innerText = (profit>0?'+':'') + profit.toFixed(1) + ' u';
                 document.getElementById('kpi-profit').className = "text-2xl font-mono font-bold " + (profit>=0?"text-teal-400":"text-red-400");
                 document.getElementById('kpi-roi').innerText = (roi>0?'+':'') + roi.toFixed(1) + ' %';
                 document.getElementById('kpi-roi').className = "text-2xl font-mono font-bold " + (roi>=0?"text-teal-400":"text-red-400");
             } else {
-                ['kpi-total','kpi-winrate','kpi-profit','kpi-roi'].forEach(id=>{
+                ['kpi-total','kpi-winrate','kpi-cote','kpi-profit','kpi-roi'].forEach(id=>{
                     document.getElementById(id).className = "text-2xl font-mono font-bold text-white";
                 });
                 document.getElementById('kpi-total').innerText = '--';
                 document.getElementById('kpi-winrate').innerText = '-- %';
+                document.getElementById('kpi-cote').innerText = '--';
                 document.getElementById('kpi-profit').innerText = '-- u';
                 document.getElementById('kpi-roi').innerText = '-- %';
             }
