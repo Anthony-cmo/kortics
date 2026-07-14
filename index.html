@@ -104,6 +104,17 @@
         </div>
 
         <div id="match-container" class="grid gap-6 md:grid-cols-2 relative"></div>
+
+        <!-- RÉSULTATS RÉCENTS (transparence — visible par tous) -->
+        <div class="mt-16">
+            <div class="flex items-center space-x-2 text-teal-400 text-xs font-semibold tracking-wider uppercase mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Historique vérifiable</span>
+            </div>
+            <h2 class="text-3xl font-bold tracking-tight text-white mb-1">Résultats récents</h2>
+            <p class="text-xs text-slate-500 mb-6">Nos pronostics passés — favori du modèle, mise à plat 1 unité — affichés tels quels, gagnés comme perdus.</p>
+            <div id="resultats-container" class="space-y-2"></div>
+        </div>
     </main>
 
     <!-- FOOTER LÉGAL -->
@@ -216,19 +227,31 @@
             else { btnPrime.className=on; btnCore.className=off; titreLive.innerText="Circuit WTA (femmes)"; }
 
             const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
-            const parisTermines = donneesFiltrees.filter(m => m.is_value === true && (m.match_status === 'Gagné' || m.match_status === 'Perdu'));
+            // Performance = favori du modèle, sur TOUS les matchs terminés (mise à plat 1 u).
+            const parisTermines = donneesFiltrees.filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu');
             const total = parisTermines.length;
 
             if (total > 0) {
                 const gagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
                 const profit = parisTermines.reduce((s,m)=> s + (m.profit_loss || 0), 0);
+                const roi = (profit / total) * 100;   // mise à plat 1 u par match
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-winrate').innerText = ((gagnes/total)*100).toFixed(1) + ' %';
                 document.getElementById('kpi-profit').innerText = (profit>0?'+':'') + profit.toFixed(1) + ' u';
-                document.getElementById('kpi-profit').className = "text-2xl font-mono font-bold " + (profit>0?"text-teal-400":"text-red-400");
-                document.getElementById('kpi-roi').innerText = (((profit/(total*10))*100).toFixed(1)) + ' %';
-                document.getElementById('kpi-roi').className = "text-2xl font-mono font-bold " + (profit>0?"text-teal-400":"text-red-400");
+                document.getElementById('kpi-profit').className = "text-2xl font-mono font-bold " + (profit>=0?"text-teal-400":"text-red-400");
+                document.getElementById('kpi-roi').innerText = (roi>0?'+':'') + roi.toFixed(1) + ' %';
+                document.getElementById('kpi-roi').className = "text-2xl font-mono font-bold " + (roi>=0?"text-teal-400":"text-red-400");
+            } else {
+                ['kpi-total','kpi-winrate','kpi-profit','kpi-roi'].forEach(id=>{
+                    document.getElementById(id).className = "text-2xl font-mono font-bold text-white";
+                });
+                document.getElementById('kpi-total').innerText = '--';
+                document.getElementById('kpi-winrate').innerText = '-- %';
+                document.getElementById('kpi-profit').innerText = '-- u';
+                document.getElementById('kpi-roi').innerText = '-- %';
             }
+
+            renderResultats(donneesFiltrees);   // section transparence (toujours, même sans match du jour)
 
             const container = document.getElementById('match-container');
             container.innerHTML = '';
@@ -241,25 +264,37 @@
                 return;
             }
 
-            // Le MATCH est visible par tous. Seule NOTRE ANALYSE (proba + estimation)
-            // est réservée au Premium (le 1er match du jour est offert en entier).
+            // Le MATCH (joueurs + cotes marché) est visible par tous. Seule NOTRE ANALYSE
+            // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
             matchsDuJour.forEach((match, index) => {
                 const analyseVisible = isPremium || index === 0;      // 1 analyse offerte / jour
                 const isValue = match.is_value;
                 const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
-                const probaBox = analyseVisible
-                    ? `<div class="text-lg font-mono font-bold text-white">${match.proba_ia}%</div>`
-                    : `<div class="text-lg font-bold text-slate-600 select-none" title="Réservé au Premium">🔒</div>`;
-                const estimBox = analyseVisible
-                    ? `<div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${match.odds_ia}</div>`
-                    : `<div class="text-lg font-bold text-slate-600 select-none" title="Réservé au Premium">🔒</div>`;
+                // Notre favori = joueur le plus probable (proba_ia = proba que le joueur A gagne)
+                const favoriA = match.proba_ia >= 50;
+                const pickNom = favoriA ? match.player_a : match.player_b;
+                const pickProba = favoriA ? match.proba_ia : (100 - match.proba_ia);
+
+                const analyseBox = analyseVisible
+                    ? `<div class="flex items-center justify-between gap-3">
+                           <div class="min-w-0">
+                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
+                               <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
+                           </div>
+                           <div class="text-right shrink-0">
+                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
+                               <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${match.odds_ia ?? '—'}</div>
+                           </div>
+                       </div>`
+                    : `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
+                           <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
+                       </div>`;
 
                 const ctaPremium = !analyseVisible
                     ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400">
-                            <span>🔒 Notre analyse est réservée au Premium.</span>
                             ${sessionActuelle
-                                ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium</a>`
+                                ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium pour voir</a>`
                                 : `<button onclick="ouvrirModal()" class="text-teal-400 font-bold hover:underline">Créer un compte gratuit</button>`}
                        </div>` : '';
 
@@ -270,31 +305,64 @@
                                 <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + match.surface : ''}</span>
                                 ${(isValue && analyseVisible) ? '<span class="text-teal-400 text-[10px] font-bold uppercase tracking-wider">Écart avec le marché</span>' : ''}
                             </div>
-                            <div class="space-y-1 mb-6">
-                                <div class="text-lg font-bold p1">${match.player_a}</div>
-                                <div class="text-[11px] text-slate-500 font-bold">VS</div>
-                                <div class="text-lg font-bold p2">${match.player_b}</div>
+                            <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 px-0.5">
+                                <span>Joueur</span><span>Cote marché</span>
+                            </div>
+                            <div class="space-y-2 mb-6">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-lg font-bold p1 truncate">${match.player_a}</span>
+                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_bookmaker ?? '—'}</span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 font-bold text-center">VS</div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-lg font-bold p2 truncate">${match.player_b}</span>
+                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_b ?? '—'}</span>
+                                </div>
                             </div>
                         </div>
                         <div class="border-t border-slate-700/50 pt-4 -mx-6 -mb-6 px-6 pb-6 bg-slate-800/20 rounded-b-xl">
-                            <div class="grid grid-cols-3 gap-3 text-center">
-                                <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
-                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre proba</div>
-                                    ${probaBox}
-                                </div>
-                                <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
-                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Cote marché</div>
-                                    <div class="text-lg font-mono font-bold text-white">${match.odds_bookmaker ?? '—'}</div>
-                                </div>
-                                <div class="bg-slate-900/40 rounded-lg p-2.5 border border-slate-800">
-                                    <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
-                                    ${estimBox}
-                                </div>
-                            </div>
+                            ${analyseBox}
                             ${ctaPremium}
                         </div>
                     </div>`;
             });
+        }
+
+        // --- RÉSULTATS RÉCENTS (transparence, visible par tous) ---
+        function renderResultats(donneesFiltrees) {
+            const box = document.getElementById('resultats-container');
+            const termines = donneesFiltrees
+                .filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu')
+                .sort((a,b) => (a.match_date < b.match_date ? 1 : -1))
+                .slice(0, 25);
+
+            if (termines.length === 0) {
+                box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.</p></div>`;
+                return;
+            }
+
+            box.innerHTML = termines.map(m => {
+                const favoriA = m.proba_ia >= 50;
+                const pickNom = favoriA ? m.player_a : m.player_b;
+                const advNom  = favoriA ? m.player_b : m.player_a;
+                const gagne = m.match_status === 'Gagné';
+                const pl = (m.profit_loss ?? 0);
+                return `
+                    <div class="flex items-center justify-between gap-3 bg-slate-800/30 border border-slate-700/50 rounded-lg px-4 py-2.5">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <span class="text-[11px] font-mono text-slate-500 w-12 shrink-0">${(m.match_date||'').slice(5)}</span>
+                            <span class="truncate text-sm">
+                                <span class="font-semibold ${favoriA ? 'p1' : 'p2'}">${pickNom}</span>
+                                <span class="text-slate-500 text-xs"> vs ${advNom}</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                            ${m.score ? `<span class="hidden sm:inline text-[11px] font-mono text-slate-500">${m.score}</span>` : ''}
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded ${gagne ? 'bg-teal-500/20 text-teal-400' : 'bg-red-500/20 text-red-400'}">${gagne ? 'Gagné' : 'Perdu'}</span>
+                            <span class="font-mono text-sm font-bold w-16 text-right ${pl >= 0 ? 'text-teal-400' : 'text-red-400'}">${pl > 0 ? '+' : ''}${pl.toFixed(2)} u</span>
+                        </div>
+                    </div>`;
+            }).join('');
         }
 
         window.addEventListener('DOMContentLoaded', initialiserKortics);
