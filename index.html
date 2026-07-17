@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kortics — Comprenez chaque match de tennis</title>
-    <meta name="description" content="Kortics analyse forme, surface, niveau et historique de chaque match de tennis (ATP & WTA) et vous en donne une lecture claire. Une aide à la décision honnête, pas un pronostic garanti.">
+    <title>Kortics — Comprenez chaque match de tennis (ATP & WTA)</title>
+    <meta name="description" content="Kortics analyse le niveau, la forme, la surface et l'historique de chaque match de tennis ATP & WTA, et vous en donne une lecture claire avec un indice de confiance. Une aide à la décision honnête — pas un pronostic garanti.">
     <meta name="theme-color" content="#0f766e">
+    <meta property="og:title" content="Kortics — Comprenez chaque match de tennis">
+    <meta property="og:description" content="La data derrière le tennis ATP & WTA, en une lecture claire et honnête.">
+    <meta property="og:type" content="website">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%BE%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .p1 { color:#60a5fa; } /* joueur A - bleu */
-        .p2 { color:#fb923c; } /* joueur B - orange */
+        .glow { background: radial-gradient(60% 60% at 50% 0%, rgba(20,184,166,0.15) 0%, transparent 70%); }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
@@ -21,117 +22,190 @@
     <!-- NAVIGATION -->
     <nav class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
+            <a href="/" class="flex items-center space-x-3">
                 <div class="bg-teal-500 text-slate-950 font-black px-2.5 py-1 rounded text-sm tracking-wider">K</div>
                 <span class="text-xl font-bold tracking-tight">Kortics<span class="text-slate-500 font-semibold text-sm"> ·tennis</span></span>
-            </div>
-            <div class="flex items-center space-x-4" id="nav-actions">
-                <!-- Boutons injectés par JS selon l'état de connexion -->
+            </a>
+            <div class="flex items-center space-x-3">
+                <a href="/analyses" class="hidden sm:inline text-slate-300 hover:text-white text-sm font-semibold transition-colors">Connexion</a>
+                <a href="/analyses" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-all">Voir les analyses</a>
             </div>
         </div>
     </nav>
 
-    <!-- FENÊTRE DE CONNEXION (MODAL) -->
-    <div id="auth-modal" class="fixed inset-0 z-[100] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-8 relative shadow-2xl">
-            <button onclick="fermerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Fermer">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 class="text-2xl font-bold text-white mb-2">Votre compte Kortics</h2>
-            <p class="text-slate-400 text-sm mb-6">Connectez-vous pour accéder aux analyses.</p>
+    <main class="flex-1">
 
-            <div id="auth-error" class="hidden bg-red-900/50 border border-red-500 text-red-200 text-xs p-3 rounded mb-4"></div>
-            <div id="auth-success" class="hidden bg-teal-900/50 border border-teal-500 text-teal-200 text-xs p-3 rounded mb-4"></div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
-                    <input type="email" id="email-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="votre@email.com">
+        <!-- HERO -->
+        <section class="relative glow">
+            <div class="max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
+                <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-teal-400 mb-4">
+                    <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span></span>
+                    La data derrière le tennis · ATP &amp; WTA
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Mot de passe</label>
-                    <input type="password" id="password-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="••••••••">
+                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
+                    Comprenez chaque match<br class="hidden md:block"> en un coup d'œil.
+                </h1>
+                <p class="text-lg text-slate-400 mt-6 max-w-2xl mx-auto leading-relaxed">
+                    Kortics analyse le niveau, la forme, la surface et l'historique de chaque joueur, et vous en donne une <b class="text-slate-200">lecture claire</b>, accompagnée d'un <b class="text-slate-200">indice de confiance</b>. Une aide à la décision honnête — <span class="text-slate-300">pas un pronostic garanti.</span>
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
+                    <a href="/analyses" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-3 px-7 rounded-lg transition-all text-center">Voir les analyses du jour</a>
+                    <a href="#comment" class="w-full sm:w-auto border border-slate-700 hover:border-slate-500 text-slate-200 font-semibold py-3 px-7 rounded-lg transition-all text-center">Comment ça marche</a>
                 </div>
-                <div class="grid grid-cols-2 gap-4 pt-2">
-                    <button onclick="creerCompte()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded transition-colors text-sm">S'inscrire</button>
-                    <button onclick="seConnecter()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded transition-colors text-sm">Se connecter</button>
+                <p class="text-xs text-slate-500 mt-4">Gratuit pour commencer · 1 analyse offerte chaque jour</p>
+            </div>
+        </section>
+
+        <!-- CHIFFRES (factuels) -->
+        <section class="border-y border-slate-800 bg-slate-950/40">
+            <div class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                <div><div class="text-2xl md:text-3xl font-extrabold text-white">117 000+</div><div class="text-xs text-slate-500 mt-1">matchs dans notre base</div></div>
+                <div><div class="text-2xl md:text-3xl font-extrabold text-white">ATP &amp; WTA</div><div class="text-xs text-slate-500 mt-1">les deux circuits</div></div>
+                <div><div class="text-2xl md:text-3xl font-extrabold text-white">Depuis 2000</div><div class="text-xs text-slate-500 mt-1">plus de 20 ans d'historique</div></div>
+                <div><div class="text-2xl md:text-3xl font-extrabold text-white">Chaque jour</div><div class="text-xs text-slate-500 mt-1">matchs &amp; résultats à jour</div></div>
+            </div>
+        </section>
+
+        <!-- PROBLÈME -> SOLUTION -->
+        <section class="max-w-4xl mx-auto px-4 py-20 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Un match de tennis, c'est illisible.</h2>
+            <p class="text-slate-400 mt-4 max-w-2xl mx-auto leading-relaxed">
+                Classements trompeurs, joueurs à l'aise sur une surface et perdus sur une autre, formes qui montent et descendent, face-à-face qui comptent… Trop d'informations, éparpillées. Kortics les rassemble et vous dit, simplement : <b class="text-teal-400">qui part favori, pourquoi, et à quel point s'y fier.</b>
+            </p>
+        </section>
+
+        <!-- COMMENT ÇA MARCHE -->
+        <section id="comment" class="max-w-6xl mx-auto px-4 py-12">
+            <div class="text-center mb-12">
+                <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Notre méthode</div>
+                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Quatre piliers, une lecture claire</h2>
+                <p class="text-slate-400 mt-3 max-w-2xl mx-auto">Pour chaque match, on rejoue tout l'historique des deux joueurs et on mesure ce qui compte vraiment.</p>
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
+                    <div class="text-3xl mb-3">📊</div>
+                    <h3 class="font-bold text-white mb-1">Le niveau</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">Un classement Elo maison, global et <b class="text-slate-300">par surface</b> — bien plus fin que le simple rang officiel.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
+                    <div class="text-3xl mb-3">📈</div>
+                    <h3 class="font-bold text-white mb-1">La forme</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">La dynamique récente : les 10 derniers matchs et les 12 derniers mois, pas seulement une réputation.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
+                    <div class="text-3xl mb-3">🎾</div>
+                    <h3 class="font-bold text-white mb-1">La surface</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">Terre, dur, gazon : qui domine réellement sur <b class="text-slate-300">cette</b> surface, historique de victoires à l'appui.</p>
+                </div>
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
+                    <div class="text-3xl mb-3">⚔️</div>
+                    <h3 class="font-bold text-white mb-1">Le face-à-face</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">L'historique direct entre les deux joueurs — certains ont la clé tactique contre un adversaire précis.</p>
                 </div>
             </div>
-        </div>
-    </div>
+            <p class="text-center text-xs text-slate-500 mt-6">Ces variables nourrissent un modèle statistique (gradient boosting) qui en tire une probabilité de victoire.</p>
+        </section>
 
-    <!-- CONTENU PRINCIPAL -->
-    <main class="max-w-6xl mx-auto px-4 py-8 w-full flex-1">
-
-        <!-- Intro honnête -->
-        <div class="mb-10 max-w-2xl">
-            <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Aide à la décision · Tennis ATP &amp; WTA</div>
-            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">Comprenez chaque match en un coup d'œil.</h1>
-            <p class="text-slate-400 mt-3">Kortics analyse forme, surface, niveau et historique de chaque joueur, et vous en donne une lecture claire. Une analyse honnête — pas un pronostic garanti.</p>
-        </div>
-
-        <!-- Sélecteur circuit -->
-        <div class="flex justify-center mb-10">
-            <div class="bg-slate-800/60 p-1.5 rounded-lg inline-flex border border-slate-700/60 backdrop-blur">
-                <button id="btn-core" onclick="changerCircuit('ATP')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm">ATP (hommes)</button>
-                <button id="btn-prime" onclick="changerCircuit('WTA')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white">WTA (femmes)</button>
+        <!-- INDICE DE CONFIANCE (différenciateur) -->
+        <section class="max-w-6xl mx-auto px-4 py-16">
+            <div class="bg-gradient-to-br from-slate-800/60 to-slate-800/20 border border-slate-700/60 rounded-2xl p-8 md:p-12">
+                <div class="grid md:grid-cols-2 gap-10 items-center">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Notre différence</div>
+                        <h2 class="text-3xl font-bold tracking-tight text-white">L'indice de confiance</h2>
+                        <p class="text-slate-400 mt-4 leading-relaxed">
+                            Tous les pronostics n'ont pas la même solidité. Notre indice vous dit, pour <b class="text-slate-200">chaque</b> match, à quel point vous fier à notre lecture : la marge du favori, l'unanimité de nos signaux, et la quantité de données disponibles.
+                        </p>
+                        <p class="text-slate-500 text-sm mt-4">Il mesure la <b class="text-slate-300">fiabilité</b> de l'analyse — pas une promesse de gain.</p>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
+                            <span class="text-teal-400 font-mono tracking-widest text-lg">●●●</span>
+                            <span class="text-sm text-slate-300 font-semibold">Confiance élevée</span>
+                            <span class="text-xs text-slate-500">favori net</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
+                            <span class="text-teal-400 font-mono tracking-widest text-lg">●●○</span>
+                            <span class="text-sm text-slate-300 font-semibold">Confiance solide</span>
+                            <span class="text-xs text-slate-500">favori clair</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
+                            <span class="text-slate-300 font-mono tracking-widest text-lg">●○○</span>
+                            <span class="text-sm text-slate-300 font-semibold">Confiance modérée</span>
+                            <span class="text-xs text-slate-500">léger favori</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
+                            <span class="text-slate-400 text-lg">⚖️</span>
+                            <span class="text-sm text-slate-300 font-semibold">Match serré</span>
+                            <span class="text-xs text-slate-500">pas de favori net</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Performance transparente -->
-        <div class="mb-14">
-            <h2 class="text-lg font-bold text-white mb-2 flex items-center space-x-2">
-                <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                <span>Performance réelle — en toute transparence</span>
-            </h2>
-            <p class="text-xs text-slate-500 mb-6">Résultats passés sur les matchs analysés. Le passé ne garantit pas l'avenir.</p>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Matchs analysés</div><div id="kpi-total" class="text-2xl font-mono font-bold text-white">--</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Taux de réussite</div><div id="kpi-winrate" class="text-2xl font-mono font-bold text-white">-- %</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Cote moyenne</div><div id="kpi-cote" class="text-2xl font-mono font-bold text-white">--</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Bilan (mise à plat)</div><div id="kpi-profit" class="text-2xl font-mono font-bold text-white">-- u</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">ROI (transparent)</div><div id="kpi-roi" class="text-2xl font-mono font-bold text-white">-- %</div></div>
+        <!-- TRANSPARENCE -->
+        <section class="max-w-4xl mx-auto px-4 py-16 text-center">
+            <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Honnêteté d'abord</div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">On affiche nos résultats tels quels.</h2>
+            <p class="text-slate-400 mt-4 max-w-2xl mx-auto leading-relaxed">
+                Gagnés comme perdus. Chaque analyse passée reste visible, avec son résultat réel. Pas de tri, pas de captures d'écran choisies — vous voyez la performance brute, en toute transparence. Parce qu'un outil de décision honnête ne se juge pas sur ses meilleurs jours.
+            </p>
+            <a href="/analyses" class="inline-block mt-6 text-teal-400 font-bold hover:underline">Voir la performance en direct →</a>
+        </section>
+
+        <!-- PREMIUM -->
+        <section class="max-w-5xl mx-auto px-4 py-16">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Commencez gratuitement</h2>
+                <p class="text-slate-400 mt-3">Une analyse offerte chaque jour. Passez Premium pour tout débloquer.</p>
             </div>
-            <div id="circuit-note" class="hidden mt-4 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200/90 rounded-lg px-4 py-3 leading-relaxed"></div>
-        </div>
-
-        <hr class="border-slate-800 mb-10">
-
-        <div class="mb-8">
-            <div class="flex items-center space-x-2 text-teal-400 text-xs font-semibold tracking-wider uppercase mb-2">
-                <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span></span>
-                <span id="titre-live">Analyse du jour</span>
+            <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-8">
+                    <div class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Gratuit</div>
+                    <ul class="space-y-3 text-sm text-slate-300">
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Tous les matchs du jour (ATP &amp; WTA)</li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Les cotes du marché</li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> <b>1 analyse complète offerte / jour</b></li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> La performance transparente</li>
+                    </ul>
+                    <a href="/analyses" class="block text-center mt-6 border border-slate-600 hover:border-slate-400 text-white font-bold py-2.5 rounded-lg transition-all">Accéder gratuitement</a>
+                </div>
+                <div class="bg-teal-500/10 border border-teal-500/40 rounded-xl p-8 relative">
+                    <div class="absolute -top-3 left-8 bg-teal-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded">Premium</div>
+                    <div class="text-sm font-bold uppercase tracking-wider text-teal-400 mb-4">Premium</div>
+                    <ul class="space-y-3 text-sm text-slate-200">
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> <b>Toutes</b> les analyses, tous les jours</li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> L'indice de confiance sur chaque match</li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Favori, probabilité &amp; niveau détaillé</li>
+                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Historique complet vérifiable</li>
+                    </ul>
+                    <a href="/analyses" class="block text-center mt-6 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded-lg transition-all">Découvrir Premium</a>
+                </div>
             </div>
-            <h2 class="text-3xl font-bold tracking-tight text-white">Les matchs du jour</h2>
-        </div>
+        </section>
 
-        <!-- Légende discrète de l'indice de confiance -->
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 mb-6">
-            <span class="font-semibold text-slate-400 uppercase tracking-wider">Indice de confiance</span>
-            <span><span class="text-teal-400 font-mono tracking-widest">●●●</span> élevée</span>
-            <span><span class="text-teal-400 font-mono tracking-widest">●●○</span> solide</span>
-            <span><span class="text-slate-300 font-mono tracking-widest">●○○</span> modérée</span>
-            <span><span class="text-slate-400">⚖️</span> match serré</span>
-            <span class="text-slate-600 italic">— à quel point se fier à notre analyse, pas une garantie de gain.</span>
-        </div>
-
-        <div id="match-container" class="grid gap-6 md:grid-cols-2 relative"></div>
-
-        <!-- RÉSULTATS RÉCENTS (transparence — visible par tous) -->
-        <div class="mt-16">
-            <div class="flex items-center space-x-2 text-teal-400 text-xs font-semibold tracking-wider uppercase mb-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>Historique vérifiable</span>
-            </div>
-            <h2 class="text-3xl font-bold tracking-tight text-white mb-1">Résultats récents</h2>
-            <p class="text-xs text-slate-500 mb-6">Nos pronostics passés — favori du modèle, mise à plat 1 unité — affichés tels quels, gagnés comme perdus.</p>
-            <div id="resultats-container" class="space-y-2"></div>
-        </div>
+        <!-- CTA FINAL -->
+        <section class="max-w-4xl mx-auto px-4 py-16 text-center">
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Prêt à y voir clair ?</h2>
+            <p class="text-slate-400 mt-4">Découvrez les analyses du jour — c'est gratuit pour commencer.</p>
+            <a href="/analyses" class="inline-block mt-8 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-3.5 px-8 rounded-lg transition-all text-lg">Voir les analyses du jour</a>
+        </section>
     </main>
 
     <!-- FOOTER LÉGAL -->
-    <footer class="border-t border-slate-800 bg-slate-950/50 mt-10">
-        <div class="max-w-6xl mx-auto px-4 py-8 text-xs text-slate-500 leading-relaxed">
+    <footer class="border-t border-slate-800 bg-slate-950/50">
+        <div class="max-w-6xl mx-auto px-4 py-10 text-xs text-slate-500 leading-relaxed">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <a href="/" class="flex items-center space-x-2">
+                    <div class="bg-teal-500 text-slate-950 font-black px-2 py-0.5 rounded text-xs">K</div>
+                    <span class="font-bold text-slate-300">Kortics</span>
+                </a>
+                <div class="flex gap-4">
+                    <a href="/analyses" class="hover:text-slate-300 transition-colors">Les analyses</a>
+                    <a href="#comment" class="hover:text-slate-300 transition-colors">Méthode</a>
+                </div>
+            </div>
             <div class="inline-flex items-center gap-2 font-bold text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 mb-3">
                 <span class="bg-teal-500 text-slate-950 rounded-full w-6 h-6 grid place-items-center font-black">18</span> Interdit aux mineurs
             </div>
@@ -139,284 +213,5 @@
             <p class="mt-2">© 2026 Kortics · Les probabilités affichées sont des estimations statistiques, pas des certitudes.</p>
         </div>
     </footer>
-
-    <script>
-        const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
-        const STRIPE_LINK  = 'https://buy.stripe.com/test_cNibJ28wyh06ewZ9RVaEE00';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let donneesGlobales = [];
-        let circuitActif = 'ATP';
-        let sessionActuelle = null;
-        let isPremium = false;
-
-        // --- AUTHENTIFICATION ---
-        async function verifierSession() {
-            const { data } = await supabaseClient.auth.getSession();
-            sessionActuelle = data.session;
-
-            if (sessionActuelle) {
-                const { data: profile } = await supabaseClient
-                    .from('profiles')
-                    .select('is_vip')
-                    .eq('id', sessionActuelle.user.id)
-                    .single();
-                isPremium = profile ? profile.is_vip : false;
-            } else {
-                isPremium = false;
-            }
-
-            mettreAJourNavigation();
-            afficherInterface();
-        }
-
-        function mettreAJourNavigation() {
-            const navContainer = document.getElementById('nav-actions');
-            if (sessionActuelle) {
-                const statut = isPremium
-                    ? '<span class="bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs font-bold px-2 py-1 rounded">PREMIUM</span>'
-                    : `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-1.5 px-3 rounded transition-all mr-2">Passer Premium</a>`;
-                navContainer.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        ${statut}
-                        <button onclick="seDeconnecter()" class="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Déconnexion</button>
-                    </div>`;
-            } else {
-                navContainer.innerHTML = `
-                    <button onclick="ouvrirModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-semibold py-2 px-4 rounded transition-colors">Connexion</button>
-                    <a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-all">Passer Premium</a>`;
-            }
-        }
-
-        function ouvrirModal() { document.getElementById('auth-modal').classList.remove('hidden'); }
-        function fermerModal() {
-            document.getElementById('auth-modal').classList.add('hidden');
-            document.getElementById('auth-error').classList.add('hidden');
-            document.getElementById('auth-success').classList.add('hidden');
-        }
-        function afficherErreur(msg){const el=document.getElementById('auth-error');el.innerText=msg;el.classList.remove('hidden');document.getElementById('auth-success').classList.add('hidden');}
-        function afficherSucces(msg){const el=document.getElementById('auth-success');el.innerText=msg;el.classList.remove('hidden');document.getElementById('auth-error').classList.add('hidden');}
-
-        async function creerCompte() {
-            const email=document.getElementById('email-input').value, password=document.getElementById('password-input').value;
-            if(!email||!password) return afficherErreur("Remplissez tous les champs.");
-            const { error } = await supabaseClient.auth.signUp({ email, password });
-            if (error) afficherErreur(error.message);
-            else afficherSucces("Compte créé ! Vérifie ta boîte mail : clique sur le lien de confirmation, puis connecte-toi.");
-        }
-        async function seConnecter() {
-            const email=document.getElementById('email-input').value, password=document.getElementById('password-input').value;
-            if(!email||!password) return afficherErreur("Remplissez tous les champs.");
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) {
-                const m = (error.message || '').toLowerCase();
-                if (m.includes('not confirmed')) afficherErreur("Ton email n'est pas encore confirmé. Ouvre le mail de Kortics (pense aux spams) et clique sur le lien de validation.");
-                else if (m.includes('invalid login')) afficherErreur("Email ou mot de passe incorrect.");
-                else afficherErreur(error.message);
-            }
-            else { fermerModal(); verifierSession(); }
-        }
-        async function seDeconnecter() { await supabaseClient.auth.signOut(); verifierSession(); }
-
-        // --- CHARGEMENT DES MATCHS ---
-        async function initialiserKortics() {
-            try {
-                const { data: historique, error } = await supabaseClient
-                    .from('historical_predictions')
-                    .select('*')
-                    .order('match_date', { ascending: false });
-                if (error) throw new Error(error.message);
-                donneesGlobales = historique || [];
-                await verifierSession();
-            } catch (err) {
-                document.getElementById('match-container').innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">Erreur de chargement : ${err.message}</div>`;
-            }
-        }
-
-        function changerCircuit(circuit){ circuitActif=circuit; afficherInterface(); }
-
-        // Notre favori (le joueur que le modèle juge le plus probable)
-        function analyseFavori(m) {
-            const favoriA = m.proba_ia >= 50;
-            const pickProba = favoriA ? m.proba_ia : (100 - m.proba_ia);
-            const coteJuste = pickProba > 0 ? (100 / pickProba) : null;      // 1 / proba du favori
-            return { favoriA, pickNom: favoriA ? m.player_a : m.player_b, pickProba, coteJuste };
-        }
-
-        // Indice de confiance MAISON (0.5/1/2/3) -> libellé + pastilles.
-        // Mesure la fiabilité de notre lecture (pas un signal qui bat les bookmakers).
-        function confiance(ind) {
-            if (ind >= 3) return { label: 'Confiance élevée',  dots: '●●●', cls: 'text-teal-400' };
-            if (ind >= 2) return { label: 'Confiance solide',  dots: '●●○', cls: 'text-teal-400' };
-            if (ind >= 1) return { label: 'Confiance modérée', dots: '●○○', cls: 'text-slate-300' };
-            return { label: 'Peu tranché', dots: '○○○', cls: 'text-slate-400' };
-        }
-
-        function afficherInterface() {
-            const btnCore=document.getElementById('btn-core'), btnPrime=document.getElementById('btn-prime'), titreLive=document.getElementById('titre-live');
-            const on="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm";
-            const off="px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
-            if (circuitActif==='ATP'){ btnCore.className=on; btnPrime.className=off; titreLive.innerText="Circuit ATP (hommes)"; }
-            else { btnPrime.className=on; btnCore.className=off; titreLive.innerText="Circuit WTA (femmes)"; }
-
-            // ATP et WTA sont désormais actifs tous les deux.
-            document.getElementById('circuit-note').classList.add('hidden');
-
-            const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
-            // Performance = favori du modèle, sur TOUS les matchs terminés (mise à plat 1 u).
-            const parisTermines = donneesFiltrees.filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu');
-            const total = parisTermines.length;
-
-            if (total > 0) {
-                const gagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
-                const profit = parisTermines.reduce((s,m)=> s + (m.profit_loss || 0), 0);
-                const roi = (profit / total) * 100;   // mise à plat 1 u par match
-                const cotesFav = parisTermines.map(m => (m.proba_ia >= 50 ? m.odds_bookmaker : m.odds_b)).filter(c => c != null);
-                const coteMoy = cotesFav.length ? (cotesFav.reduce((a,b)=>a+b,0) / cotesFav.length) : null;
-                document.getElementById('kpi-total').innerText = total;
-                document.getElementById('kpi-winrate').innerText = ((gagnes/total)*100).toFixed(1) + ' %';
-                document.getElementById('kpi-cote').innerText = coteMoy ? coteMoy.toFixed(2) : '--';
-                document.getElementById('kpi-profit').innerText = (profit>0?'+':'') + profit.toFixed(1) + ' u';
-                document.getElementById('kpi-profit').className = "text-2xl font-mono font-bold " + (profit>=0?"text-teal-400":"text-red-400");
-                document.getElementById('kpi-roi').innerText = (roi>0?'+':'') + roi.toFixed(1) + ' %';
-                document.getElementById('kpi-roi').className = "text-2xl font-mono font-bold " + (roi>=0?"text-teal-400":"text-red-400");
-            } else {
-                ['kpi-total','kpi-winrate','kpi-cote','kpi-profit','kpi-roi'].forEach(id=>{
-                    document.getElementById(id).className = "text-2xl font-mono font-bold text-white";
-                });
-                document.getElementById('kpi-total').innerText = '--';
-                document.getElementById('kpi-winrate').innerText = '-- %';
-                document.getElementById('kpi-cote').innerText = '--';
-                document.getElementById('kpi-profit').innerText = '-- u';
-                document.getElementById('kpi-roi').innerText = '-- %';
-            }
-
-            renderResultats(donneesFiltrees);   // section transparence (toujours, même sans match du jour)
-
-            const container = document.getElementById('match-container');
-            container.innerHTML = '';
-            const aujourdhui = new Date().toISOString().split('T')[0];
-            const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
-            matchsDuJour.sort((a,b)=> (b.indice||0) - (a.indice||0));   // plus confiants en premier
-
-            if (matchsDuJour.length === 0) {
-                container.innerHTML = `<div class="col-span-2 text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400">Aucun match analysé pour aujourd'hui pour le moment.</p></div>`;
-                return;
-            }
-
-            // Le MATCH (joueurs + cotes marché) est visible par tous. Seule NOTRE ANALYSE
-            // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
-            matchsDuJour.forEach((match, index) => {
-                const analyseVisible = isPremium || index === 0;      // 1 analyse offerte / jour
-
-                const { favoriA, pickNom, pickProba } = analyseFavori(match);
-                const ind = match.indice;                             // 0.5 / 1 / 2 / 3
-                const conf = confiance(ind);
-                const serre = (ind != null && ind <= 0.5);            // peu tranché, pas de favori net
-                const hauteConf = (ind >= 3);                         // indice 3 = quasi-sûr
-                const borderClass = (hauteConf && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
-
-                let analyseBox;
-                if (!analyseVisible) {
-                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
-                           <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
-                       </div>`;
-                } else if (serre) {
-                    analyseBox = `<div class="text-center py-1">
-                           <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
-                           <div class="text-base font-bold text-slate-300">⚖️ Match serré — pas de favori net</div>
-                       </div>`;
-                } else {
-                    analyseBox = `<div class="flex items-center justify-between gap-3">
-                           <div class="min-w-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
-                               <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
-                           </div>
-                           <div class="text-right shrink-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Confiance</div>
-                               <div class="text-base font-bold ${conf.cls}"><span class="font-mono tracking-widest">${conf.dots}</span></div>
-                               <div class="text-[10px] font-semibold ${conf.cls}">${conf.label}</div>
-                           </div>
-                       </div>`;
-                }
-
-                const ctaPremium = (!analyseVisible)
-                    ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400">
-                            ${sessionActuelle
-                                ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium pour voir</a>`
-                                : `<button onclick="ouvrirModal()" class="text-teal-400 font-bold hover:underline">Créer un compte gratuit</button>`}
-                       </div>` : '';
-
-                container.innerHTML += `
-                    <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
-                                <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + match.surface : ''}</span>
-                                ${(hauteConf && analyseVisible) ? '<span class="text-teal-400 text-[10px] font-bold uppercase tracking-wider">Confiance élevée</span>' : ''}
-                            </div>
-                            <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 px-0.5">
-                                <span>Joueur</span><span>Cote marché</span>
-                            </div>
-                            <div class="space-y-2 mb-6">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-lg font-bold p1 truncate">${match.player_a}</span>
-                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_bookmaker ?? '—'}</span>
-                                </div>
-                                <div class="text-[11px] text-slate-500 font-bold text-center">VS</div>
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-lg font-bold p2 truncate">${match.player_b}</span>
-                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_b ?? '—'}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="border-t border-slate-700/50 pt-4 -mx-6 -mb-6 px-6 pb-6 bg-slate-800/20 rounded-b-xl">
-                            ${analyseBox}
-                            ${ctaPremium}
-                        </div>
-                    </div>`;
-            });
-        }
-
-        // --- RÉSULTATS RÉCENTS (transparence, visible par tous) ---
-        function renderResultats(donneesFiltrees) {
-            const box = document.getElementById('resultats-container');
-            const termines = donneesFiltrees
-                .filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu')
-                .sort((a,b) => (a.match_date < b.match_date ? 1 : -1))
-                .slice(0, 25);
-
-            if (termines.length === 0) {
-                const msg = "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
-                box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">${msg}</p></div>`;
-                return;
-            }
-
-            box.innerHTML = termines.map(m => {
-                const favoriA = m.proba_ia >= 50;
-                const pickNom = favoriA ? m.player_a : m.player_b;
-                const advNom  = favoriA ? m.player_b : m.player_a;
-                const gagne = m.match_status === 'Gagné';
-                const pl = (m.profit_loss ?? 0);
-                return `
-                    <div class="flex items-center justify-between gap-3 bg-slate-800/30 border border-slate-700/50 rounded-lg px-4 py-2.5">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <span class="text-[11px] font-mono text-slate-500 w-12 shrink-0">${(m.match_date||'').slice(5)}</span>
-                            <span class="truncate text-sm">
-                                <span class="font-semibold ${favoriA ? 'p1' : 'p2'}">${pickNom}</span>
-                                <span class="text-slate-500 text-xs"> vs ${advNom}</span>
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                            ${m.score ? `<span class="hidden sm:inline text-[11px] font-mono text-slate-500">${m.score}</span>` : ''}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded ${gagne ? 'bg-teal-500/20 text-teal-400' : 'bg-red-500/20 text-red-400'}">${gagne ? 'Gagné' : 'Perdu'}</span>
-                            <span class="font-mono text-sm font-bold w-16 text-right ${pl >= 0 ? 'text-teal-400' : 'text-red-400'}">${pl > 0 ? '+' : ''}${pl.toFixed(2)} u</span>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-        window.addEventListener('DOMContentLoaded', initialiserKortics);
-    </script>
 </body>
 </html>
