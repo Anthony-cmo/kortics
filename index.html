@@ -226,20 +226,21 @@
 
         function changerCircuit(circuit){ circuitActif=circuit; afficherInterface(); }
 
-        // Cote "juste valeur" de notre favori + détection value (marché >= notre estimation +10%)
+        // Notre favori (le joueur que le modèle juge le plus probable)
         function analyseFavori(m) {
             const favoriA = m.proba_ia >= 50;
             const pickProba = favoriA ? m.proba_ia : (100 - m.proba_ia);
             const coteJuste = pickProba > 0 ? (100 / pickProba) : null;      // 1 / proba du favori
-            const coteMarche = favoriA ? m.odds_bookmaker : m.odds_b;         // cote marché du favori
-            const isValue = !!(coteMarche && coteJuste && coteMarche >= coteJuste * 1.10);
-            return {
-                favoriA,
-                pickNom: favoriA ? m.player_a : m.player_b,
-                pickProba,
-                coteJuste,
-                isValue,
-            };
+            return { favoriA, pickNom: favoriA ? m.player_a : m.player_b, pickProba, coteJuste };
+        }
+
+        // Indice de confiance MAISON (0.5/1/2/3) -> libellé + pastilles.
+        // Mesure la fiabilité de notre lecture (pas un signal qui bat les bookmakers).
+        function confiance(ind) {
+            if (ind >= 3) return { label: 'Confiance élevée',  dots: '●●●', cls: 'text-teal-400' };
+            if (ind >= 2) return { label: 'Confiance solide',  dots: '●●○', cls: 'text-teal-400' };
+            if (ind >= 1) return { label: 'Confiance modérée', dots: '●○○', cls: 'text-slate-300' };
+            return { label: 'Peu tranché', dots: '○○○', cls: 'text-slate-400' };
         }
 
         function afficherInterface() {
@@ -249,13 +250,8 @@
             if (circuitActif==='ATP'){ btnCore.className=on; btnPrime.className=off; titreLive.innerText="Circuit ATP (hommes)"; }
             else { btnPrime.className=on; btnCore.className=off; titreLive.innerText="Circuit WTA (femmes)"; }
 
-            const note = document.getElementById('circuit-note');
-            if (circuitActif === 'WTA') {
-                note.classList.remove('hidden');
-                note.innerHTML = "🔜 <b>Modèle WTA — bientôt disponible.</b> Nous affichons déjà les matchs WTA (joueuses, cotes du marché), mais <b>notre analyse n'est pas encore en ligne pour la WTA</b> : elle arrivera prochainement, une fois l'historique WTA intégré. Le modèle ATP, lui, est pleinement actif.";
-            } else {
-                note.classList.add('hidden');
-            }
+            // ATP et WTA sont désormais actifs tous les deux.
+            document.getElementById('circuit-note').classList.add('hidden');
 
             const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
             // Performance = favori du modèle, sur TOUS les matchs terminés (mise à plat 1 u).
@@ -292,7 +288,7 @@
             container.innerHTML = '';
             const aujourdhui = new Date().toISOString().split('T')[0];
             const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
-            matchsDuJour.sort((a,b)=> analyseFavori(b).isValue - analyseFavori(a).isValue);
+            matchsDuJour.sort((a,b)=> (b.indice||0) - (a.indice||0));   // plus confiants en premier
 
             if (matchsDuJour.length === 0) {
                 container.innerHTML = `<div class="col-span-2 text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400">Aucun match analysé pour aujourd'hui pour le moment.</p></div>`;
@@ -303,18 +299,16 @@
             // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
             matchsDuJour.forEach((match, index) => {
                 const analyseVisible = isPremium || index === 0;      // 1 analyse offerte / jour
-                const analyseFiable = match.circuit === 'ATP';        // pas encore de modèle WTA
 
-                // Notre favori + sa cote juste + value (cohérents avec le joueur affiché)
-                const { favoriA, pickNom, pickProba, coteJuste, isValue: valueBrut } = analyseFavori(match);
-                const serre = analyseFiable && pickProba <= 51;       // ~50/50 : pas de favori net
-                const isValue = valueBrut && analyseFiable && !serre; // value seulement si modèle fiable ET avis tranché
-                const borderClass = (isValue && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
+                const { favoriA, pickNom, pickProba } = analyseFavori(match);
+                const ind = match.indice;                             // 0.5 / 1 / 2 / 3
+                const conf = confiance(ind);
+                const serre = (ind != null && ind <= 0.5);            // peu tranché, pas de favori net
+                const hauteConf = (ind >= 3);                         // indice 3 = quasi-sûr
+                const borderClass = (hauteConf && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
                 let analyseBox;
-                if (!analyseFiable) {
-                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1"><span class="text-sm">🔜 Analyse WTA bientôt disponible</span></div>`;
-                } else if (!analyseVisible) {
+                if (!analyseVisible) {
                     analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
                            <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
                        </div>`;
@@ -330,13 +324,14 @@
                                <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
                            </div>
                            <div class="text-right shrink-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre estimation</div>
-                               <div class="text-lg font-mono font-bold ${isValue ? 'text-teal-400' : 'text-slate-300'}">${coteJuste ? coteJuste.toFixed(2) : '—'}</div>
+                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Confiance</div>
+                               <div class="text-base font-bold ${conf.cls}"><span class="font-mono tracking-widest">${conf.dots}</span></div>
+                               <div class="text-[10px] font-semibold ${conf.cls}">${conf.label}</div>
                            </div>
                        </div>`;
                 }
 
-                const ctaPremium = (analyseFiable && !analyseVisible)
+                const ctaPremium = (!analyseVisible)
                     ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400">
                             ${sessionActuelle
                                 ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium pour voir</a>`
@@ -348,7 +343,7 @@
                         <div>
                             <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
                                 <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + match.surface : ''}</span>
-                                ${(isValue && analyseVisible) ? '<span class="text-teal-400 text-[10px] font-bold uppercase tracking-wider">Écart avec le marché</span>' : ''}
+                                ${(hauteConf && analyseVisible) ? '<span class="text-teal-400 text-[10px] font-bold uppercase tracking-wider">Confiance élevée</span>' : ''}
                             </div>
                             <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 px-0.5">
                                 <span>Joueur</span><span>Cote marché</span>
@@ -382,9 +377,7 @@
                 .slice(0, 25);
 
             if (termines.length === 0) {
-                const msg = circuitActif === 'WTA'
-                    ? "Le suivi des résultats WTA arrivera avec le modèle WTA (bientôt). Les matchs WTA restent affichés ci-dessus."
-                    : "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
+                const msg = "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
                 box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">${msg}</p></div>`;
                 return;
             }
