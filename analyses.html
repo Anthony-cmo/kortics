@@ -43,7 +43,16 @@
             <div id="auth-error" class="hidden bg-red-900/50 border border-red-500 text-red-200 text-xs p-3 rounded mb-4"></div>
             <div id="auth-success" class="hidden bg-teal-900/50 border border-teal-500 text-teal-200 text-xs p-3 rounded mb-4"></div>
 
-            <div class="space-y-4">
+            <!-- Mode "nouveau mot de passe" : affiché uniquement au retour du lien de réinitialisation -->
+            <div id="bloc-nouveau-mdp" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nouveau mot de passe</label>
+                    <input type="password" id="nouveau-mdp-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="••••••••">
+                </div>
+                <button onclick="definirNouveauMotDePasse()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded transition-colors text-sm">Enregistrer le nouveau mot de passe</button>
+            </div>
+
+            <div id="bloc-auth" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
                     <input type="email" id="email-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="votre@email.com">
@@ -55,6 +64,9 @@
                 <div class="grid grid-cols-2 gap-4 pt-2">
                     <button onclick="creerCompte()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded transition-colors text-sm">S'inscrire</button>
                     <button onclick="seConnecter()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded transition-colors text-sm">Se connecter</button>
+                </div>
+                <div class="pt-1 text-center">
+                    <button onclick="motDePasseOublie()" class="text-xs text-slate-400 hover:text-teal-400 underline transition-colors">Mot de passe oublié ?</button>
                 </div>
             </div>
         </div>
@@ -194,6 +206,10 @@
             document.getElementById('auth-modal').classList.add('hidden');
             document.getElementById('auth-error').classList.add('hidden');
             document.getElementById('auth-success').classList.add('hidden');
+            // On repasse toujours en mode connexion : sinon, refermer la fenêtre pendant une
+            // réinitialisation la laisserait coincée sur le champ "nouveau mot de passe".
+            document.getElementById('bloc-nouveau-mdp').classList.add('hidden');
+            document.getElementById('bloc-auth').classList.remove('hidden');
         }
         function afficherErreur(msg){const el=document.getElementById('auth-error');el.innerText=msg;el.classList.remove('hidden');document.getElementById('auth-success').classList.add('hidden');}
         function afficherSucces(msg){const el=document.getElementById('auth-success');el.innerText=msg;el.classList.remove('hidden');document.getElementById('auth-error').classList.add('hidden');}
@@ -217,6 +233,42 @@
             }
             else { fermerModal(); verifierSession(); }
         }
+        // Envoie le mail de réinitialisation. On répond TOUJOURS la même chose, même si
+        // l'adresse est inconnue : sinon le formulaire permettrait de deviner qui est inscrit.
+        async function motDePasseOublie() {
+            const email = document.getElementById('email-input').value;
+            if (!email) return afficherErreur("Entrez d'abord votre email, puis recliquez sur « Mot de passe oublié ».");
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/analyses.html'
+            });
+            if (error && (error.message || '').toLowerCase().includes('rate limit'))
+                afficherErreur("Trop de demandes d'affilée. Patientez quelques minutes.");
+            else
+                afficherSucces("Si un compte existe avec cette adresse, un lien de réinitialisation vient d'être envoyé. Pensez à regarder dans les spams.");
+        }
+
+        // Retour du lien de réinitialisation : Supabase ouvre une session temporaire et
+        // émet PASSWORD_RECOVERY. On bascule alors la fenêtre en mode "nouveau mot de passe".
+        supabaseClient.auth.onAuthStateChange((evenement) => {
+            if (evenement === 'PASSWORD_RECOVERY') {
+                document.getElementById('bloc-auth').classList.add('hidden');
+                document.getElementById('bloc-nouveau-mdp').classList.remove('hidden');
+                ouvrirModal();
+                afficherSucces("Lien vérifié. Choisissez votre nouveau mot de passe.");
+            }
+        });
+
+        async function definirNouveauMotDePasse() {
+            const mdp = document.getElementById('nouveau-mdp-input').value;
+            if (!mdp || mdp.length < 6) return afficherErreur("Le mot de passe doit faire au moins 6 caractères.");
+            const { error } = await supabaseClient.auth.updateUser({ password: mdp });
+            if (error) return afficherErreur(error.message);
+            document.getElementById('bloc-nouveau-mdp').classList.add('hidden');
+            document.getElementById('bloc-auth').classList.remove('hidden');
+            afficherSucces("Mot de passe mis à jour. Vous êtes connecté.");
+            setTimeout(() => { fermerModal(); verifierSession(); }, 1500);
+        }
+
         async function seDeconnecter() { await supabaseClient.auth.signOut(); verifierSession(); }
 
         // --- CHARGEMENT DES MATCHS ---
