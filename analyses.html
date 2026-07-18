@@ -217,7 +217,13 @@
         async function creerCompte() {
             const email=document.getElementById('email-input').value, password=document.getElementById('password-input').value;
             if(!email||!password) return afficherErreur("Remplissez tous les champs.");
-            const { error } = await supabaseClient.auth.signUp({ email, password });
+            // Après avoir cliqué le lien de confirmation, l'utilisateur doit revenir DANS
+            // l'application, pas sur la page de présentation (sinon il doit retrouver son
+            // chemin juste après s'être engagé). Même URL propre que pour le mot de passe oublié.
+            const retour = window.location.origin + window.location.pathname.replace(/\.html$/, '');
+            const { error } = await supabaseClient.auth.signUp({
+                email, password, options: { emailRedirectTo: retour }
+            });
             if (error) afficherErreur(error.message);
             else afficherSucces("Compte créé ! Vérifie ta boîte mail : clique sur le lien de confirmation, puis connecte-toi.");
         }
