@@ -238,8 +238,12 @@
         async function motDePasseOublie() {
             const email = document.getElementById('email-input').value;
             if (!email) return afficherErreur("Entrez d'abord votre email, puis recliquez sur « Mot de passe oublié ».");
+            // On renvoie vers l'URL courante nettoyée de ses paramètres. Vercel est en
+            // "cleanUrls" : l'adresse réelle est /analyses, et viser /analyses.html
+            // provoquerait une redirection 308 qui peut faire perdre le jeton de session.
+            const retour = window.location.origin + window.location.pathname.replace(/\.html$/, '');
             const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/analyses.html'
+                redirectTo: retour
             });
             if (error && (error.message || '').toLowerCase().includes('rate limit'))
                 afficherErreur("Trop de demandes d'affilée. Patientez quelques minutes.");
