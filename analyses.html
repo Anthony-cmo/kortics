@@ -313,6 +313,21 @@
             return (m.proba_ia >= 50) !== (m.odds_bookmaker <= m.odds_b);
         }
 
+        // Écart entre notre estimation et celle du marché (en points de %), marge retirée.
+        // Un écart énorme ne veut pas dire "opportunité" : il veut dire que notre modèle
+        // manque d'infos sur ces joueurs (souvent absents de notre base). On n'analyse pas.
+        const ECART_MAX = 30;
+        function ecartMarche(m) {
+            if (m.odds_bookmaker == null || m.odds_b == null || m.proba_ia == null) return null;
+            const ia = 1 / m.odds_bookmaker, ib = 1 / m.odds_b;
+            const probaMarcheA = 100 * ia / (ia + ib);
+            return Math.abs(m.proba_ia - probaMarcheA);
+        }
+        function donneesInsuffisantes(m) {
+            const e = ecartMarche(m);
+            return e !== null && e > ECART_MAX;
+        }
+
         // Indice de confiance MAISON (0.5/1/2/3) -> libellé + pastilles.
         // Mesure la fiabilité de notre lecture (pas un signal qui bat les bookmakers).
         function confiance(ind) {
@@ -395,6 +410,12 @@
                 if (!analyseVisible) {
                     analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
                            <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
+                       </div>`;
+                } else if (donneesInsuffisantes(match)) {
+                    analyseBox = `<div class="text-center py-1">
+                           <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
+                           <div class="text-base font-bold text-slate-300">📭 Données insuffisantes sur ces joueurs</div>
+                           <div class="text-[11px] text-slate-500 mt-1">Nous préférons ne rien annoncer plutôt qu'une estimation peu fiable.</div>
                        </div>`;
                 } else if (serre) {
                     analyseBox = `<div class="text-center py-1">
