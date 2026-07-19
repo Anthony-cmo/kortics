@@ -382,7 +382,12 @@
                 const { favoriA, pickNom, pickProba } = analyseFavori(match);
                 const ind = match.indice;                             // 0.5 / 1 / 2 / 3
                 const conf = confiance(ind);
-                const serre = (ind != null && ind <= 0.5);            // peu tranché, pas de favori net
+                // Notre indice classe parfois « peu tranché » un match que le marché juge net
+                // (cote ~1.45). Dans ce cas on annonce quand même le favori, avec sa confiance
+                // réelle (○○○). On ne masque que si on est peu sûr ET à contre-courant du marché.
+                // Sans cotes on ne peut pas vérifier l'accord -> on reste sur la réserve.
+                const cotesConnues = (match.odds_bookmaker != null && match.odds_b != null);
+                const serre = (ind != null && ind <= 0.5 && (!cotesConnues || contreLeMarche(match)));
                 const hauteConf = (ind >= 3);                         // indice 3 = quasi-sûr
                 const borderClass = (hauteConf && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
