@@ -419,6 +419,145 @@
             return { label: 'Peu tranché', dots: '○○○', cls: 'text-slate-400' };
         }
 
+        // =====================================================================
+        //  CONTEXTE DU MATCH — le cœur de la carte.
+        //  Le contexte est FACTUEL : il s'affiche pour tous les matchs, même quand
+        //  le modèle est aveugle. C'est l'affirmation (notre favori) qu'on filtre,
+        //  jamais l'information.
+        // =====================================================================
+        const SURFACES_FR = { Clay:'terre battue', Hard:'dur', Grass:'gazon', Carpet:'moquette' };
+        function surfaceFr(s){ return SURFACES_FR[s] || (s ? String(s).toLowerCase() : ''); }
+
+        // Nos chiffres valent 50 % (ou 1500 de niveau) PAR DÉFAUT quand notre base ne
+        // connaît pas le joueur. En dessous de ces seuils, ce n'est pas une mesure :
+        // on affiche « — » plutôt qu'un chiffre inventé.
+        const MIN_CARRIERE = 10, MIN_12M = 5, MIN_SURFACE = 5;
+        // n absent = colonnes d'effectifs pas encore remplies par le robot : on ne
+        // bloque rien (on retombe sur l'ancien comportement) plutôt que de tout masquer.
+        function assez(n, min){ return n == null || n >= min; }
+
+        // Une ligne de comparaison : valeur A · libellé · valeur B, + barre de partage.
+        // part = poids visuel du joueur A entre 0 et 1 (null = pas de barre).
+        function ligneContexte(label, aide, txtA, txtB, part, okA, okB, valA, valB) {
+            const inconnu = 'text-slate-600';
+            const gagneA = okA && okB && valA != null && valB != null && valA > valB;
+            const gagneB = okA && okB && valA != null && valB != null && valB > valA;
+            const clsA = !okA ? inconnu : (gagneA ? 'p1 font-bold' : 'text-slate-400');
+            const clsB = !okB ? inconnu : (gagneB ? 'p2 font-bold' : 'text-slate-400');
+            const pct = (part == null || !okA || !okB) ? null : Math.max(4, Math.min(96, part*100));
+            const barre = pct == null
+                ? `<div class="h-1 rounded-full bg-slate-700/30"></div>`
+                : `<div class="flex h-1 rounded-full overflow-hidden bg-slate-700/40">
+                       <div style="width:${pct}%" class="bg-blue-400/70"></div>
+                       <div style="width:${100-pct}%" class="bg-orange-400/70"></div>
+                   </div>`;
+            return {
+                complet: !!(okA && okB),   // ligne réellement comparable des deux côtés
+                html: `<div class="py-1.5">
+                        <div class="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3 mb-1">
+                            <div class="text-right font-mono text-sm ${clsA}">${okA ? txtA : '—'}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold text-center whitespace-nowrap" title="${aide}">${label}</div>
+                            <div class="text-left font-mono text-sm ${clsB}">${okB ? txtB : '—'}</div>
+                        </div>
+                        ${barre}
+                    </div>`,
+            };
+        }
+
+        // Probabilité qu'un niveau a l'emporte sur un niveau b (formule Elo) — sert
+        // uniquement à donner une largeur de barre lisible, pas à prédire.
+        function partElo(a, b){ return 1 / (1 + Math.pow(10, (b - a) / 400)); }
+        function partPct(a, b){ const s = (a||0) + (b||0); return s > 0 ? (a||0) / s : 0.5; }
+
+        function lignesContexte(m) {
+            const surf = surfaceFr(m.surface);
+            const l = [];
+
+            // Niveau global — terme grand public ; l'infobulle assume le mot « Elo ».
+            const okN_a = assez(m.n_a, MIN_CARRIERE), okN_b = assez(m.n_b, MIN_CARRIERE);
+            if (m.elo_a != null && m.elo_b != null)
+                l.push(ligneContexte('Niveau',
+                    "Niveau estimé d'après tous les matchs joués (classement de type Elo). Plus le nombre est haut, plus le joueur est fort.",
+                    Math.round(m.elo_a), Math.round(m.elo_b),
+                    partElo(m.elo_a, m.elo_b), okN_a, okN_b, m.elo_a, m.elo_b));
+
+            // Niveau sur la surface du jour
+            const okS_a = assez(m.nsurf_a, MIN_SURFACE), okS_b = assez(m.nsurf_b, MIN_SURFACE);
+            if (surf && m.elo_surf_a != null && m.elo_surf_b != null)
+                l.push(ligneContexte(`Niveau · ${surf}`,
+                    `Le même niveau, calculé uniquement sur les matchs joués sur ${surf}.`,
+                    Math.round(m.elo_surf_a), Math.round(m.elo_surf_b),
+                    partElo(m.elo_surf_a, m.elo_surf_b), okS_a, okS_b, m.elo_surf_a, m.elo_surf_b));
+
+            // Forme sur 12 mois (avec l'effectif quand on le connaît)
+            const ok12_a = assez(m.n12_a, MIN_12M), ok12_b = assez(m.n12_b, MIN_12M);
+            const nb = n => n != null ? ` <span class="text-slate-600">(${n})</span>` : '';
+            if (m.form_a != null && m.form_b != null)
+                l.push(ligneContexte('Forme (12 mois)',
+                    'Pourcentage de matchs gagnés sur les douze derniers mois. Entre parenthèses : le nombre de matchs sur lequel c’est calculé.',
+                    `${m.form_a} %${nb(m.n12_a)}`, `${m.form_b} %${nb(m.n12_b)}`,
+                    partPct(m.form_a, m.form_b), ok12_a, ok12_b, m.form_a, m.form_b));
+
+            // Forme très récente (10 derniers matchs) — colonne récente, souvent absente
+            if (m.forme10_a != null && m.forme10_b != null)
+                l.push(ligneContexte('10 derniers matchs',
+                    'Pourcentage de victoires sur les dix derniers matchs disputés, toutes surfaces confondues.',
+                    `${m.forme10_a} %`, `${m.forme10_b} %`,
+                    partPct(m.forme10_a, m.forme10_b), okN_a, okN_b, m.forme10_a, m.forme10_b));
+
+            // Réussite sur la surface
+            if (surf && m.surf_pct_a != null && m.surf_pct_b != null)
+                l.push(ligneContexte(`Victoires · ${surf}`,
+                    `Pourcentage de matchs gagnés sur ${surf} depuis que notre base suit le joueur.`,
+                    `${m.surf_pct_a} %${nb(m.nsurf_a)}`, `${m.surf_pct_b} %${nb(m.nsurf_b)}`,
+                    partPct(m.surf_pct_a, m.surf_pct_b), okS_a, okS_b, m.surf_pct_a, m.surf_pct_b));
+
+            // Face-à-face : 0-0 n'est pas une donnée, c'est une première rencontre.
+            const ha = m.h2h_a || 0, hb = m.h2h_b || 0;
+            if (ha + hb > 0)
+                l.push(ligneContexte('Face-à-face',
+                    'Nombre de victoires de chacun dans leurs confrontations passées.',
+                    ha, hb, partPct(ha, hb), true, true, ha, hb));
+
+            // Fraîcheur : ici, « plus » n'est pas « mieux » -> aucun gagnant désigné,
+            // aucune barre. On donne le fait, le lecteur en tire ce qu'il veut.
+            //
+            // ⚠️ Notre base ne couvre que le circuit principal. Un joueur qui enchaîne
+            // les Challengers y apparaît « au repos depuis 1188 jours » alors qu'il joue
+            // toutes les semaines. Au-delà de trois semaines, ce n'est donc plus une
+            // mesure de fraîcheur mais un trou dans nos données : on n'affiche rien.
+            const REPOS_MAX = 21;
+            if (m.repos_a != null && m.repos_b != null
+                && m.repos_a <= REPOS_MAX && m.repos_b <= REPOS_MAX) {
+                const j = v => v === 0 ? "aujourd'hui" : (v === 1 ? '1 jour' : `${v} jours`);
+                l.push(ligneContexte('Dernier match',
+                    'Jours écoulés depuis son dernier match sur le circuit principal : peu de jours = enchaînement, donc fatigue possible.',
+                    j(m.repos_a), j(m.repos_b), null, true, true, null, null));
+            }
+
+            l.premiereRencontre = (ha + hb === 0);
+            return l;
+        }
+
+        // Une carte remplie de « — » est honnête mais inutile, et elle donne l'impression
+        // d'un site cassé. En dessous de deux lignes réellement comparables des deux côtés,
+        // on considère qu'on ne connaît pas ce match — et on ne conclut donc rien non plus.
+        function contexteFaible(m) {
+            return lignesContexte(m).filter(x => x.complet).length < 2;
+        }
+
+        function blocContexte(m) {
+            if (contexteFaible(m))
+                return `<div class="text-center py-4">
+                            <div class="text-base font-bold text-slate-300">📭 Joueurs trop peu connus de notre base</div>
+                            <div class="text-[11px] text-slate-500 mt-1">Nous n'avons pas assez de matchs sur eux pour dresser un contexte fiable. Souvent le cas des joueurs qui arrivent du circuit secondaire.</div>
+                        </div>`;
+            const l = lignesContexte(m);
+            const premiere = l.premiereRencontre
+                ? `<div class="text-[11px] text-slate-500 text-center mt-3">Première rencontre entre ces deux joueurs.</div>` : '';
+            return l.map(x => x.html).join('') + premiere;
+        }
+
         function afficherInterface() {
             const btnCore=document.getElementById('btn-core'), btnPrime=document.getElementById('btn-prime'), titreLive=document.getElementById('titre-live');
             const on="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm";
@@ -493,7 +632,10 @@
                     analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
                            <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
                        </div>`;
-                } else if (donneesInsuffisantes(match)) {
+                } else if (donneesInsuffisantes(match) || contexteFaible(match)) {
+                    // Deux chemins vers le même refus : soit notre estimation s'écarte
+                    // trop du marché (signe qu'on ignore ces joueurs), soit le contexte
+                    // lui-même est trop maigre. On ne conclut pas sur ce qu'on ne sait pas.
                     analyseBox = `<div class="text-center py-1">
                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
                            <div class="text-base font-bold text-slate-300">📭 Données insuffisantes sur ces joueurs</div>
@@ -513,7 +655,7 @@
                            </div>` : '';
                     analyseBox = `<div class="flex items-center justify-between gap-3">
                            <div class="min-w-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
+                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre lecture</div>
                                <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
                            </div>
                            <div class="text-right shrink-0">
@@ -530,22 +672,29 @@
                     <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 flex flex-col justify-between">
                         <div>
                             <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
-                                <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + match.surface : ''}</span>
+                                <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + surfaceFr(match.surface) : ''}</span>
                                 ${(hauteConf && analyseVisible) ? '<span class="text-teal-400 text-[10px] font-bold uppercase tracking-wider">Confiance élevée</span>' : ''}
                             </div>
-                            <div class="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-2 px-0.5">
-                                <span>Joueur</span><span>Cote marché</span>
+                            <!-- Les deux joueurs, face à face : le contexte dessous se lit
+                                 dans le même axe (gauche = bleu, droite = orange). -->
+                            <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-2 mb-5">
+                                <div class="text-right min-w-0">
+                                    <div class="text-base font-bold p1 truncate">${match.player_a}</div>
+                                    <div class="font-mono text-xs text-slate-400 mt-1">${match.odds_bookmaker ?? '—'}</div>
+                                </div>
+                                <div class="text-[11px] text-slate-600 font-bold pt-1">VS</div>
+                                <div class="text-left min-w-0">
+                                    <div class="text-base font-bold p2 truncate">${match.player_b}</div>
+                                    <div class="font-mono text-xs text-slate-400 mt-1">${match.odds_b ?? '—'}</div>
+                                </div>
                             </div>
-                            <div class="space-y-2 mb-6">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-lg font-bold p1 truncate">${match.player_a}</span>
-                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_bookmaker ?? '—'}</span>
-                                </div>
-                                <div class="text-[11px] text-slate-500 font-bold text-center">VS</div>
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="text-lg font-bold p2 truncate">${match.player_b}</span>
-                                    <span class="font-mono text-sm font-bold text-white bg-slate-900/50 px-2.5 py-1 rounded shrink-0">${match.odds_b ?? '—'}</span>
-                                </div>
+                            <div class="text-center text-[10px] uppercase tracking-wider text-slate-600 font-bold mb-4">Cotes du marché</div>
+
+                            <!-- LE CONTEXTE : c'est lui le produit. Factuel, affiché pour
+                                 tous les matchs, y compris ceux où l'on ne conclut rien. -->
+                            <div class="border-t border-slate-700/50 pt-4">
+                                <div class="text-[10px] uppercase tracking-wider text-teal-400/80 font-bold mb-2 text-center">Le contexte du match</div>
+                                ${blocContexte(match)}
                             </div>
                         </div>
                         <div class="border-t border-slate-700/50 pt-4 -mx-6 -mb-6 px-6 pb-6 bg-slate-800/20 rounded-b-xl">
