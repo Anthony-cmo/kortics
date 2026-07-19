@@ -80,6 +80,25 @@
             <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Aide à la décision · Tennis ATP &amp; WTA</div>
             <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">Comprenez chaque match en un coup d'œil.</h1>
             <p class="text-slate-400 mt-3">Kortics analyse forme, surface, niveau et historique de chaque joueur, et vous en donne une lecture claire. Une analyse honnête — pas un pronostic garanti.</p>
+
+            <!-- Indépendance : aucun concurrent financé par affiliation ne peut afficher ceci. -->
+            <div class="mt-6 flex items-start gap-3 bg-teal-500/5 border border-teal-500/20 rounded-xl px-4 py-3">
+                <span class="text-teal-400 text-lg shrink-0 mt-0.5">🛡️</span>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    <b class="text-white">Nous ne touchons pas un centime des bookmakers.</b>
+                    Aucun lien d'affiliation, aucune commission sur vos pertes. Nous n'avons
+                    aucun intérêt à ce que vous pariez plus — seulement à ce que vous décidiez mieux.
+                </p>
+            </div>
+
+            <div class="mt-3 flex items-start gap-3 bg-slate-800/40 border border-slate-700/60 rounded-xl px-4 py-3">
+                <span class="text-slate-400 text-lg shrink-0 mt-0.5">🎁</span>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                    <b class="text-white">Tout est gratuit pendant la phase d'ouverture.</b>
+                    Toutes les analyses, tous les matchs, sans paiement. Créez un compte si vous
+                    voulez suivre le projet — c'est tout.
+                </p>
+            </div>
         </div>
 
         <!-- Sélecteur circuit -->
@@ -185,19 +204,15 @@
 
         function mettreAJourNavigation() {
             const navContainer = document.getElementById('nav-actions');
+            // Phase d'ouverture : tout est gratuit, aucun paiement proposé.
             if (sessionActuelle) {
-                const statut = isPremium
-                    ? '<span class="bg-teal-500/20 text-teal-400 border border-teal-500/30 text-xs font-bold px-2 py-1 rounded">PREMIUM</span>'
-                    : `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-1.5 px-3 rounded transition-all mr-2">Passer Premium</a>`;
                 navContainer.innerHTML = `
                     <div class="flex items-center space-x-4">
-                        ${statut}
                         <button onclick="seDeconnecter()" class="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Déconnexion</button>
                     </div>`;
             } else {
                 navContainer.innerHTML = `
-                    <button onclick="ouvrirModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-sm font-semibold py-2 px-4 rounded transition-colors">Connexion</button>
-                    <a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-all">Passer Premium</a>`;
+                    <button onclick="ouvrirModal()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-colors">Créer un compte gratuit</button>`;
             }
         }
 
@@ -392,7 +407,9 @@
             // Le MATCH (joueurs + cotes marché) est visible par tous. Seule NOTRE ANALYSE
             // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
             matchsDuJour.forEach((match, index) => {
-                const analyseVisible = isPremium || index === 0;      // 1 analyse offerte / jour
+                // Phase d'ouverture : toutes les analyses sont accessibles à tous.
+                // La logique Premium (isPremium) est conservée pour plus tard, pas supprimée.
+                const analyseVisible = true;
 
                 const { favoriA, pickNom, pickProba } = analyseFavori(match);
                 const ind = match.indice;                             // 0.5 / 1 / 2 / 3
@@ -442,12 +459,7 @@
                        </div>${avertissement}`;
                 }
 
-                const ctaPremium = (!analyseVisible)
-                    ? `<div class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400">
-                            ${sessionActuelle
-                                ? `<a href="${STRIPE_LINK}" target="_blank" rel="noopener" class="text-teal-400 font-bold hover:underline">Passer Premium pour voir</a>`
-                                : `<button onclick="ouvrirModal()" class="text-teal-400 font-bold hover:underline">Créer un compte gratuit</button>`}
-                       </div>` : '';
+                const ctaPremium = '';   // aucun paiement proposé pendant la phase d'ouverture
 
                 container.innerHTML += `
                     <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 flex flex-col justify-between">
