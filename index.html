@@ -1,247 +1,312 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kortics — Comprenez chaque match de tennis (ATP & WTA)</title>
-    <meta name="description" content="Kortics analyse le niveau, la forme, la surface et l'historique de chaque match de tennis ATP & WTA, et vous en donne une lecture claire avec un indice de confiance. Une aide à la décision honnête — pas un pronostic garanti.">
-    <meta name="theme-color" content="#0f766e">
-    <meta property="og:title" content="Kortics — Comprenez chaque match de tennis">
-    <meta property="og:description" content="La data derrière le tennis ATP & WTA, en une lecture claire et honnête.">
-    <meta property="og:type" content="website">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%BE%3C/text%3E%3C/svg%3E">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glow { background: radial-gradient(60% 60% at 50% 0%, rgba(20,184,166,0.15) 0%, transparent 70%); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kortics — le relevé du match, pas le pronostic (ATP &amp; WTA)</title>
+<meta name="description" content="Classement officiel, forme récente, bilan par surface et face-à-face pour chaque match ATP, WTA et Challenger. Une lecture honnête, sans affiliation, qui se tait quand elle ne sait pas.">
+<meta name="theme-color" content="#080c14">
+<meta property="og:title" content="Kortics — le relevé du match, pas le pronostic">
+<meta property="og:description" content="Le contexte mesurable de chaque match de tennis, affiché sans promesse. Sans aucun lien d'affiliation.">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://kortics.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%BE%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Direction visuelle : voir le bandeau de analyses.html. Principale = Depot,
+   emprunt unique = le sourcil de section d'Astro. Rayon 6 px max, filets 1 px,
+   aucune ombre, accent teal réservé à l'action principale et aux sourcils. */
+:root{
+  --canvas:#080c14; --s1:#0f141f; --s2:#151b28; --s3:#1c2331;
+  --border:#262e3d; --border-fort:#333d50;
+  --t1:#e6e9ee; --t2:#9aa4b5; --t3:#6b7688;
+  --accent:#2dd4bf; --accent-bord:#14524b; --accent-fond:#0d2b28;
+  --p1:#4a7fae; --p2:#ae7a4a;
+  --perte:#e5677a;
+  --reflet:inset 0 1px 0 0 rgba(255,255,255,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--canvas);color:var(--t1);min-height:100vh;display:flex;flex-direction:column;
+  font:400 15px/1.65 'Red Hat Text',system-ui,-apple-system,sans-serif;letter-spacing:.025em}
+h1,h2,h3{font-family:'Red Hat Display',system-ui,sans-serif;letter-spacing:-.025em}
+a{color:var(--accent);text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px;width:100%}
+
+nav{border-bottom:1px solid var(--border);background:var(--canvas);position:sticky;top:0;z-index:50}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{display:flex;align-items:center;gap:9px;color:var(--t1);
+  font-family:'Red Hat Display';font-weight:700;font-size:19px;letter-spacing:-.025em}
+.logo i{background:var(--accent);color:#04231f;font-style:normal;font-weight:700;
+  padding:1px 7px;border-radius:2px;font-size:15px}
+.logo em{color:var(--t3);font-style:normal;font-size:12px;font-weight:500;letter-spacing:.025em}
+.nav-d{display:flex;align-items:center;gap:16px}
+.nav-d>a{color:var(--t2);font-size:14px;font-weight:500}
+.nav-d>a:hover{color:var(--t1)}
+
+.btn{display:inline-block;border-radius:6px;padding:10px 18px;font-weight:600;font-size:14px;
+  border:1px solid transparent;letter-spacing:.025em;transition:.15s}
+.btn-1{background:var(--accent);border-color:var(--accent-bord);color:#04231f;box-shadow:var(--reflet)}
+.btn-1:hover{background:#4fdfcd}
+.btn-2{background:var(--s2);border-color:var(--border-fort);color:var(--t1)}
+.btn-2:hover{background:var(--s3)}
+/* ⚠️ .nav-d>a l'emporte en spécificité sur .btn-1 : sans cette reprise, le bouton
+   du menu hériterait du gris et deviendrait illisible sur le teal. */
+.nav-d>a.btn-1{color:#04231f}
+
+main{flex:1}
+section{padding:60px 0;border-top:1px solid var(--border)}
+section.hero{padding:70px 0 60px;border-top:0}
+.sourcil{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--accent);margin-bottom:11px}
+h1{font-size:50px;line-height:1.05;font-weight:700;max-width:16ch;text-wrap:balance}
+h2{font-size:29px;font-weight:600;margin-bottom:8px;text-wrap:balance}
+h3{font-size:16px;font-weight:600;margin-bottom:5px}
+.chapo{color:var(--t2);font-size:17px;max-width:60ch;margin-top:16px;text-wrap:pretty}
+.note{color:var(--t3);font-size:13.5px;max-width:66ch}
+.actions{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap}
+
+.grille{display:grid;gap:16px;margin-top:28px}
+.g2{grid-template-columns:1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+.carte{background:var(--s1);border:1px solid var(--border);border-radius:6px;
+  padding:20px;box-shadow:var(--reflet)}
+.carte p{color:var(--t2);font-size:14px;margin-top:4px}
+.carte .cle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--accent);margin-bottom:9px}
+.carte .cle.gris{color:var(--t3)}
+
+.chiffres{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;box-shadow:var(--reflet);margin-top:30px}
+.ch{padding:17px;background:var(--s1);border-right:1px solid var(--border)}
+.ch:last-child{border-right:0}
+.ch .n{font-family:ui-monospace,Menlo,monospace;font-size:23px;font-weight:600;letter-spacing:-.01em}
+.ch .l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--t3);margin-top:5px}
+
+/* relevé miniature : le geste signature, en démonstration */
+.demo{background:var(--s1);border:1px solid var(--border);border-radius:6px;
+  box-shadow:var(--reflet);overflow:hidden}
+.demo .tete{display:flex;justify-content:space-between;gap:8px;padding:10px 14px;
+  background:var(--s2);border-bottom:1px solid var(--border)}
+.tag{display:inline-block;border-radius:2px;padding:3px 7px;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;background:var(--s3);
+  border:1px solid var(--border);color:var(--t3)}
+.tag.acc{background:var(--accent-fond);border-color:var(--accent-bord);color:var(--accent)}
+.demo .noms{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;padding:16px 14px 12px;align-items:start}
+.demo .noms .n{font-family:'Red Hat Display';font-weight:600;font-size:15px;letter-spacing:-.02em}
+.demo .noms .a{text-align:right}
+.demo .noms .c{font-family:ui-monospace,monospace;font-size:12px;color:var(--t2);margin-top:2px}
+.demo .vs{color:var(--t3);font-size:10px;font-weight:700;padding-top:4px}
+.demo .corps{padding:2px 14px 14px;border-top:1px solid var(--border)}
+.lg{padding:6px 0}
+.lgh{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:baseline;margin-bottom:5px}
+.v{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--t3)}
+.v.a{text-align:right}.v.fort{color:var(--t1);font-weight:700}
+.lb{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);white-space:nowrap}
+.br{display:flex;height:2px;background:var(--s3)}
+.br i{display:block}.br .ba{background:var(--p1)}.br .bb{background:var(--p2)}
+.pst{display:inline-block;width:17px;height:17px;line-height:16px;text-align:center;
+  font-size:9px;font-weight:700;border-radius:2px;font-family:ui-monospace,monospace;margin-left:2px}
+.pv{background:var(--accent-fond);color:var(--accent);border:1px solid var(--accent-bord)}
+.pd{background:#2b1218;color:var(--perte);border:1px solid #4a1f28}
+.demo .pied{border-top:1px solid var(--border);background:var(--s2);padding:11px 14px;
+  display:flex;justify-content:space-between;align-items:center}
+.demo .pl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.demo .lec{font-family:'Red Hat Display';font-weight:600;font-size:15px;margin-top:2px}
+.demo .pts{font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.16em;color:var(--accent)}
+
+.duo{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:36px;align-items:center;margin-top:28px}
+ul.liste{list-style:none;margin-top:16px}
+ul.liste li{padding:7px 0 7px 22px;position:relative;color:var(--t2);font-size:14.5px;
+  border-bottom:1px solid var(--border)}
+ul.liste li:last-child{border-bottom:0}
+ul.liste li::before{content:'';position:absolute;left:4px;top:16px;width:5px;height:5px;
+  background:var(--accent);border-radius:1px}
+ul.liste.non li::before{background:var(--t3)}
+ul.liste b{color:var(--t1);font-weight:600}
+
+footer{border-top:1px solid var(--border);background:var(--canvas)}
+footer .wrap{padding:28px 20px 32px;font-size:12px;color:var(--t3);line-height:1.65}
+footer b{color:var(--t2);font-weight:600}
+.age{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);
+  border-radius:6px;padding:5px 11px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--t2)}
+.age i{background:var(--accent);color:#04231f;font-style:normal;font-weight:700;
+  border-radius:2px;padding:1px 5px;font-size:11px}
+.fliens{margin-top:12px;display:flex;gap:16px;flex-wrap:wrap}
+.fliens a{color:var(--t2);font-size:12.5px}
+
+@media(max-width:860px){
+  .g2,.g4,.duo{grid-template-columns:1fr}
+  .chiffres{grid-template-columns:1fr 1fr}
+  .ch{border-bottom:1px solid var(--border)}
+  h1{font-size:32px}h2{font-size:24px}
+  .duo{gap:24px}
+}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+<body>
 
-    <!-- NAVIGATION -->
-    <nav class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="/" class="flex items-center space-x-3">
-                <div class="bg-teal-500 text-slate-950 font-black px-2.5 py-1 rounded text-sm tracking-wider">K</div>
-                <span class="text-xl font-bold tracking-tight">Kortics<span class="text-slate-500 font-semibold text-sm"> ·tennis</span></span>
-            </a>
-            <div class="flex items-center space-x-3">
-                <a href="/analyses" class="hidden sm:inline text-slate-300 hover:text-white text-sm font-semibold transition-colors">Connexion</a>
-                <a href="/analyses" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-all">Voir les analyses</a>
-            </div>
+<nav><div class="wrap">
+  <span class="logo"><i>K</i>Kortics<em>·tennis</em></span>
+  <span class="nav-d">
+    <a href="/joueurs">Joueurs</a>
+    <a class="btn btn-1" href="/analyses">Voir les matchs du jour</a>
+  </span>
+</div></nav>
+
+<main>
+
+  <section class="hero"><div class="wrap">
+    <div class="sourcil">Aide à la décision · Tennis ATP &amp; WTA</div>
+    <h1>Le relevé du match, pas le pronostic.</h1>
+    <p class="chapo">Pour chaque match, nous rassemblons ce qui est mesurable : classement officiel,
+      forme récente, bilan sur la surface, face-à-face, fraîcheur. Vous lisez le match en dix secondes.</p>
+    <p class="note" style="margin-top:14px">Et quand nos données ne suffisent pas, nous le disons
+      au lieu d'inventer un pourcentage.</p>
+    <div class="actions">
+      <a class="btn btn-1" href="/analyses">Voir les matchs du jour</a>
+      <a class="btn btn-2" href="/joueurs">Parcourir les joueurs</a>
+    </div>
+
+    <div class="chiffres">
+      <div class="ch"><div class="n">6 993</div><div class="l">joueurs suivis</div></div>
+      <div class="ch"><div class="n">4</div><div class="l">circuits couverts</div></div>
+      <div class="ch"><div class="n">2×/jour</div><div class="l">mise à jour</div></div>
+      <div class="ch"><div class="n">0 €</div><div class="l">pendant l'ouverture</div></div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sourcil">Ce que vous voyez</div>
+    <h2>Un relevé, pas un slogan.</h2>
+    <p class="chapo">Chaque carte se lit dans le même axe : le joueur de gauche, la mesure, le joueur
+      de droite. La barre montre qui mène. Aucun chiffre n'est de notre invention.</p>
+
+    <div class="duo">
+      <div class="demo">
+        <div class="tete"><span class="tag">Bastad · terre battue</span><span class="tag acc">Confiance élevée</span></div>
+        <div class="noms">
+          <div class="a"><div class="n">A. Rublev</div><div class="c">1.76</div></div>
+          <div class="vs">VS</div>
+          <div><div class="n">L. Darderi</div><div class="c">2.17</div></div>
         </div>
-    </nav>
-
-    <main class="flex-1">
-
-        <!-- HERO -->
-        <section class="relative glow">
-            <div class="max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
-                <div class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-teal-400 mb-4">
-                    <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span></span>
-                    La data derrière le tennis · ATP &amp; WTA
-                </div>
-                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-[1.05]">
-                    Comprenez chaque match<br class="hidden md:block"> en un coup d'œil.
-                </h1>
-                <p class="text-lg text-slate-400 mt-6 max-w-2xl mx-auto leading-relaxed">
-                    Kortics analyse le niveau, la forme, la surface et l'historique de chaque joueur, et vous en donne une <b class="text-slate-200">lecture claire</b>, accompagnée d'un <b class="text-slate-200">indice de confiance</b>. Une aide à la décision honnête — <span class="text-slate-300">pas un pronostic garanti.</span>
-                </p>
-                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-                    <a href="/analyses" class="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-3 px-7 rounded-lg transition-all text-center">Voir les analyses du jour</a>
-                    <a href="#comment" class="w-full sm:w-auto border border-slate-700 hover:border-slate-500 text-slate-200 font-semibold py-3 px-7 rounded-lg transition-all text-center">Comment ça marche</a>
-                </div>
-                <p class="text-xs text-slate-500 mt-4">Gratuit pour commencer · 1 analyse offerte chaque jour</p>
-            </div>
-        </section>
-
-        <!-- CHIFFRES (factuels) -->
-        <section class="border-y border-slate-800 bg-slate-950/40">
-            <div class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                <div><div class="text-2xl md:text-3xl font-extrabold text-white">117 000+</div><div class="text-xs text-slate-500 mt-1">matchs dans notre base</div></div>
-                <div><div class="text-2xl md:text-3xl font-extrabold text-white">ATP &amp; WTA</div><div class="text-xs text-slate-500 mt-1">les deux circuits</div></div>
-                <div><div class="text-2xl md:text-3xl font-extrabold text-white">Depuis 2000</div><div class="text-xs text-slate-500 mt-1">plus de 20 ans d'historique</div></div>
-                <div><div class="text-2xl md:text-3xl font-extrabold text-white">Chaque jour</div><div class="text-xs text-slate-500 mt-1">matchs &amp; résultats à jour</div></div>
-            </div>
-        </section>
-
-        <!-- PROBLÈME -> SOLUTION -->
-        <section class="max-w-4xl mx-auto px-4 py-20 text-center">
-            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Un match de tennis, c'est illisible.</h2>
-            <p class="text-slate-400 mt-4 max-w-2xl mx-auto leading-relaxed">
-                Classements trompeurs, joueurs à l'aise sur une surface et perdus sur une autre, formes qui montent et descendent, face-à-face qui comptent… Trop d'informations, éparpillées. Kortics les rassemble et vous dit, simplement : <b class="text-teal-400">qui part favori, pourquoi, et à quel point s'y fier.</b>
-            </p>
-        </section>
-
-        <!-- COMMENT ÇA MARCHE -->
-        <section id="comment" class="max-w-6xl mx-auto px-4 py-12">
-            <div class="text-center mb-12">
-                <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Notre méthode</div>
-                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Quatre piliers, une lecture claire</h2>
-                <p class="text-slate-400 mt-3 max-w-2xl mx-auto">Pour chaque match, on rejoue tout l'historique des deux joueurs et on mesure ce qui compte vraiment.</p>
-            </div>
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
-                    <div class="text-3xl mb-3">📊</div>
-                    <h3 class="font-bold text-white mb-1">Le niveau</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">Un classement Elo maison, global et <b class="text-slate-300">par surface</b> — bien plus fin que le simple rang officiel.</p>
-                </div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
-                    <div class="text-3xl mb-3">📈</div>
-                    <h3 class="font-bold text-white mb-1">La forme</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">La dynamique récente : les 10 derniers matchs et les 12 derniers mois, pas seulement une réputation.</p>
-                </div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
-                    <div class="text-3xl mb-3">🎾</div>
-                    <h3 class="font-bold text-white mb-1">La surface</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">Terre, dur, gazon : qui domine réellement sur <b class="text-slate-300">cette</b> surface, historique de victoires à l'appui.</p>
-                </div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-6 backdrop-blur">
-                    <div class="text-3xl mb-3">⚔️</div>
-                    <h3 class="font-bold text-white mb-1">Le face-à-face</h3>
-                    <p class="text-sm text-slate-400 leading-relaxed">L'historique direct entre les deux joueurs — certains ont la clé tactique contre un adversaire précis.</p>
-                </div>
-            </div>
-            <p class="text-center text-xs text-slate-500 mt-6">Ces variables nourrissent un modèle statistique (gradient boosting) qui en tire une probabilité de victoire.</p>
-        </section>
-
-        <!-- INDICE DE CONFIANCE (différenciateur) -->
-        <section class="max-w-6xl mx-auto px-4 py-16">
-            <div class="bg-gradient-to-br from-slate-800/60 to-slate-800/20 border border-slate-700/60 rounded-2xl p-8 md:p-12">
-                <div class="grid md:grid-cols-2 gap-10 items-center">
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Notre différence</div>
-                        <h2 class="text-3xl font-bold tracking-tight text-white">L'indice de confiance</h2>
-                        <p class="text-slate-400 mt-4 leading-relaxed">
-                            Tous les pronostics n'ont pas la même solidité. Notre indice vous dit, pour <b class="text-slate-200">chaque</b> match, à quel point vous fier à notre lecture : la marge du favori, l'unanimité de nos signaux, et la quantité de données disponibles.
-                        </p>
-                        <p class="text-slate-500 text-sm mt-4">Il mesure la <b class="text-slate-300">fiabilité</b> de l'analyse — pas une promesse de gain.</p>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
-                            <span class="text-teal-400 font-mono tracking-widest text-lg">●●●</span>
-                            <span class="text-sm text-slate-300 font-semibold">Confiance élevée</span>
-                            <span class="text-xs text-slate-500">favori net</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
-                            <span class="text-teal-400 font-mono tracking-widest text-lg">●●○</span>
-                            <span class="text-sm text-slate-300 font-semibold">Confiance solide</span>
-                            <span class="text-xs text-slate-500">favori clair</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
-                            <span class="text-slate-300 font-mono tracking-widest text-lg">●○○</span>
-                            <span class="text-sm text-slate-300 font-semibold">Confiance modérée</span>
-                            <span class="text-xs text-slate-500">léger favori</span>
-                        </div>
-                        <div class="flex items-center justify-between bg-slate-900/50 rounded-lg px-4 py-3 border border-slate-700/50">
-                            <span class="text-slate-400 text-lg">⚖️</span>
-                            <span class="text-sm text-slate-300 font-semibold">Match serré</span>
-                            <span class="text-xs text-slate-500">pas de favori net</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TRANSPARENCE -->
-        <section class="max-w-4xl mx-auto px-4 py-16 text-center">
-            <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Honnêteté d'abord</div>
-            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">On affiche nos résultats tels quels.</h2>
-            <p class="text-slate-400 mt-4 max-w-2xl mx-auto leading-relaxed">
-                Gagnés comme perdus. Chaque analyse passée reste visible, avec son résultat réel. Pas de tri, pas de captures d'écran choisies — vous voyez la performance brute, en toute transparence. Parce qu'un outil de décision honnête ne se juge pas sur ses meilleurs jours.
-            </p>
-            <a href="/analyses" class="inline-block mt-6 text-teal-400 font-bold hover:underline">Voir la performance en direct →</a>
-        </section>
-
-        <!-- POUR QUI / PAS POUR QUI -->
-        <section class="max-w-5xl mx-auto px-4 py-16">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Kortics est fait pour vous… ou pas.</h2>
-                <p class="text-slate-400 mt-3">On préfère être clairs dès le départ.</p>
-            </div>
-            <div class="grid md:grid-cols-2 gap-6">
-                <div class="bg-teal-500/5 border border-teal-500/30 rounded-xl p-8">
-                    <div class="text-sm font-bold uppercase tracking-wider text-teal-400 mb-5">C'est pour vous si…</div>
-                    <ul class="space-y-4 text-sm text-slate-200">
-                        <li class="flex gap-3"><span class="text-teal-400 mt-0.5 shrink-0">✓</span> Vous suivez le tennis et voulez le comprendre plus vite et mieux</li>
-                        <li class="flex gap-3"><span class="text-teal-400 mt-0.5 shrink-0">✓</span> Vous voulez une lecture claire, chiffrée et honnête de chaque match</li>
-                        <li class="flex gap-3"><span class="text-teal-400 mt-0.5 shrink-0">✓</span> Vous aimez la transparence — nos résultats affichés tels quels</li>
-                        <li class="flex gap-3"><span class="text-teal-400 mt-0.5 shrink-0">✓</span> Vous voulez savoir à quel point vous fier à chaque analyse</li>
-                    </ul>
-                </div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-8">
-                    <div class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-5">Ce n'est pas pour vous si…</div>
-                    <ul class="space-y-4 text-sm text-slate-400">
-                        <li class="flex gap-3"><span class="text-slate-600 mt-0.5 shrink-0">✕</span> Vous cherchez des « pronostics sûrs » ou une méthode pour devenir riche</li>
-                        <li class="flex gap-3"><span class="text-slate-600 mt-0.5 shrink-0">✕</span> Vous attendez une garantie de gains — ça n'existe pas, et on ne la promettra jamais</li>
-                        <li class="flex gap-3"><span class="text-slate-600 mt-0.5 shrink-0">✕</span> Vous voulez qu'on parie à votre place</li>
-                        <li class="flex gap-3"><span class="text-slate-600 mt-0.5 shrink-0">✕</span> Vous avez moins de 18 ans</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- OUVERTURE : tout gratuit + indépendance -->
-        <section class="max-w-5xl mx-auto px-4 py-16">
-            <div class="text-center mb-10">
-                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Tout est gratuit</h2>
-                <p class="text-slate-400 mt-3">Kortics ouvre ses portes. Toutes les analyses, tous les matchs, sans paiement.</p>
-            </div>
-            <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                <div class="bg-teal-500/10 border border-teal-500/40 rounded-xl p-8">
-                    <div class="text-sm font-bold uppercase tracking-wider text-teal-400 mb-4">🛡️ Notre indépendance</div>
-                    <p class="text-sm text-slate-200 leading-relaxed mb-4">
-                        <b class="text-white">Nous ne touchons pas un centime des bookmakers.</b>
-                        Aucun lien d'affiliation, aucune commission sur vos pertes.
-                    </p>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        La plupart des sites de pronostics sont rémunérés par les bookmakers,
-                        souvent au pourcentage de ce que vous leur faites perdre. Leur intérêt est
-                        que vous pariez plus. Le nôtre est que vous décidiez mieux.
-                    </p>
-                </div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-8">
-                    <div class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Ce que vous obtenez</div>
-                    <ul class="space-y-3 text-sm text-slate-300">
-                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Tous les matchs du jour (ATP &amp; WTA)</li>
-                        <li class="flex gap-2"><span class="text-teal-400">✓</span> Les cotes du marché, joueur par joueur</li>
-                        <li class="flex gap-2"><span class="text-teal-400">✓</span> <b>Toutes</b> les analyses, sans restriction</li>
-                        <li class="flex gap-2"><span class="text-teal-400">✓</span> L'indice de confiance sur chaque match</li>
-                        <li class="flex gap-2"><span class="text-teal-400">✓</span> La performance réelle, gagnée comme perdue</li>
-                    </ul>
-                    <a href="/analyses" class="block text-center mt-6 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded-lg transition-all">Accéder gratuitement</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- CTA FINAL -->
-        <section class="max-w-4xl mx-auto px-4 py-16 text-center">
-            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight text-white">Prêt à y voir clair ?</h2>
-            <p class="text-slate-400 mt-4">Découvrez les analyses du jour — c'est gratuit pour commencer.</p>
-            <a href="/analyses" class="inline-block mt-8 bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-3.5 px-8 rounded-lg transition-all text-lg">Voir les analyses du jour</a>
-        </section>
-    </main>
-
-    <!-- FOOTER LÉGAL -->
-    <footer class="border-t border-slate-800 bg-slate-950/50">
-        <div class="max-w-6xl mx-auto px-4 py-10 text-xs text-slate-500 leading-relaxed">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <a href="/" class="flex items-center space-x-2">
-                    <div class="bg-teal-500 text-slate-950 font-black px-2 py-0.5 rounded text-xs">K</div>
-                    <span class="font-bold text-slate-300">Kortics</span>
-                </a>
-                <div class="flex gap-4">
-                    <a href="/analyses" class="hover:text-slate-300 transition-colors">Les analyses</a>
-                    <a href="#comment" class="hover:text-slate-300 transition-colors">Méthode</a>
-                </div>
-            </div>
-            <div class="inline-flex items-center gap-2 font-bold text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 mb-3">
-                <span class="bg-teal-500 text-slate-950 rounded-full w-6 h-6 grid place-items-center font-black">18</span> Interdit aux mineurs
-            </div>
-            <p><b class="text-slate-300">Kortics est un outil d'analyse et d'aide à la décision.</b> Il ne prend aucun pari et ne garantit aucun gain. Les paris sportifs comportent un risque de perte d'argent. Jouer comporte des risques : endettement, isolement, dépendance. Pour être aidé, appelez le <b class="text-slate-300">09 74 75 13 13</b> (Joueurs Info Service, appel non surtaxé).</p>
-            <p class="mt-2">© 2026 Kortics · Les probabilités affichées sont des estimations statistiques, pas des certitudes.</p>
+        <div class="corps">
+          <div class="lg"><div class="lgh"><span class="v a fort">n°16</span><span class="lb">Classement</span><span class="v">n°18</span></div>
+            <div class="br"><i class="ba" style="width:52%"></i><i class="bb" style="width:48%"></i></div></div>
+          <div class="lg"><div class="lgh"><span class="v a">8-6</span><span class="lb">Bilan · terre</span><span class="v fort">30-11</span></div>
+            <div class="br"><i class="ba" style="width:33%"></i><i class="bb" style="width:67%"></i></div></div>
+          <div class="lg"><div class="lgh"><span class="v a"><span class="pst pd">D</span><span class="pst pv">V</span><span class="pst pv">V</span><span class="pst pv">V</span></span><span class="lb">5 derniers</span><span class="v"><span class="pst pv">V</span><span class="pst pd">D</span><span class="pst pv">V</span><span class="pst pd">D</span></span></div>
+            <div class="br"></div></div>
+          <div class="lg"><div class="lgh"><span class="v a fort">1</span><span class="lb">Face-à-face</span><span class="v">0</span></div>
+            <div class="br"><i class="ba" style="width:96%"></i><i class="bb" style="width:4%"></i></div></div>
         </div>
-    </footer>
+        <div class="pied">
+          <div><div class="pl">Notre lecture</div><div class="lec">A. Rublev · 55 %</div></div>
+          <div style="text-align:right"><div class="pl">Confiance</div><div class="pts">●●●</div></div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Le contexte d'abord, notre lecture ensuite</h3>
+        <p class="note">Notre probabilité figure en pied de carte, pas en titre. C'est un élément
+          parmi d'autres, et pas le plus solide : le reste est vérifiable, elle est estimée.</p>
+        <ul class="liste">
+          <li><b>Classement officiel</b> ATP / WTA, avec les points</li>
+          <li><b>Bilan réel sur la surface</b>, saison indiquée</li>
+          <li><b>Cinq derniers matchs</b>, tous circuits — adversaire et score au survol</li>
+          <li><b>Face-à-face</b> complet, Challenger inclus</li>
+          <li><b>Fraîcheur</b> : jours écoulés depuis le dernier match disputé</li>
+        </ul>
+      </div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sourcil">Notre différence</div>
+    <h2>Nous ne touchons pas un centime des bookmakers.</h2>
+    <p class="chapo">Aucun lien d'affiliation, aucune commission. La plupart des sites de pronostics
+      sont rémunérés par les opérateurs, souvent au pourcentage des pertes des joueurs qu'ils
+      apportent — leur intérêt est donc que vous perdiez, et longtemps.</p>
+    <p class="chapo">Le nôtre est que vous décidiez mieux. C'est la seule phrase de cette page
+      qu'aucun site financé par l'affiliation ne peut écrire.</p>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sourcil">La confiance</div>
+    <h2>Elle mesure notre distance au marché.</h2>
+    <p class="chapo">Nous avons testé notre ancien indice maison sur 79 matchs : il ne distinguait
+      rien. Nous l'avons retiré. Ce qui distingue réellement, sur 133 matchs, c'est l'écart entre
+      notre estimation et celle du marché.</p>
+    <div class="grille g4">
+      <div class="carte"><div class="cle">Écart &lt; 10 pts</div><h3>76 % de réussite</h3><p>Nos lectures les plus fiables.</p></div>
+      <div class="carte"><div class="cle">10 à 20 pts</div><h3>55 %</h3><p>À prendre avec réserve.</p></div>
+      <div class="carte"><div class="cle">20 à 30 pts</div><h3>40 %</h3><p>Nettement moins fiable.</p></div>
+      <div class="carte"><div class="cle gris">Au-delà de 30</div><h3>Rien affiché</h3><p>Signe que nous ne connaissons pas assez ces joueurs.</p></div>
+    </div>
+    <p class="note" style="margin-top:20px">⚠️ À lire correctement : cela signifie « quand notre
+      lecture rejoint celle du bookmaker, le bookmaker a raison ». C'est une réserve sur nous, pas
+      une promesse de gain. Nous ne battons pas le marché, et nous ne le prétendons pas.</p>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sourcil">Transparence</div>
+    <h2>Nos résultats sont affichés tels quels.</h2>
+    <p class="chapo">Gagnés comme perdus, sans tri ni capture d'écran choisie. Le bilan figure en
+      haut de la page des matchs, et l'historique complet juste en dessous. Aujourd'hui ce bilan
+      est proche de zéro — et c'est écrit noir sur blanc.</p>
+    <div class="actions"><a class="btn btn-2" href="/analyses">Voir la performance en direct</a></div>
+  </div></section>
+
+  <section><div class="wrap">
+    <div class="sourcil">Honnêteté</div>
+    <h2>Kortics n'est pas fait pour tout le monde.</h2>
+    <div class="grille g2">
+      <div class="carte">
+        <div class="cle">C'est pour vous si</div>
+        <ul class="liste">
+          <li>Vous suivez le tennis et voulez lire un match plus vite</li>
+          <li>Vous préférez des faits vérifiables à une promesse</li>
+          <li>Vous vous intéressez aussi aux Challengers et à l'ITF</li>
+          <li>Vous acceptez qu'un outil dise « je ne sais pas »</li>
+        </ul>
+      </div>
+      <div class="carte">
+        <div class="cle gris">Ce n'est pas pour vous si</div>
+        <ul class="liste non">
+          <li>Vous cherchez des pronostics garantis</li>
+          <li>Vous voulez une méthode pour gagner à coup sûr</li>
+          <li>Vous attendez un rendement annoncé à l'avance</li>
+          <li>Vous voulez qu'on décide à votre place</li>
+        </ul>
+      </div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap" style="text-align:center">
+    <h2>Les matchs du jour sont en ligne.</h2>
+    <p class="chapo" style="margin:16px auto 0">Gratuit, sans inscription obligatoire, ATP et WTA.</p>
+    <div class="actions" style="justify-content:center">
+      <a class="btn btn-1" href="/analyses">Voir les matchs du jour</a>
+    </div>
+  </div></section>
+
+</main>
+
+<footer><div class="wrap">
+  <div class="age"><i>18</i> Interdit aux mineurs</div>
+  <p><b>Kortics est un outil d'analyse et d'aide à la décision.</b> Il ne prend aucun pari et ne
+  garantit aucun gain. Les paris sportifs comportent un risque de perte d'argent. Jouer comporte
+  des risques : endettement, isolement, dépendance. Pour être aidé, appelez le
+  <b>09 74 75 13 13</b> (Joueurs Info Service, appel non surtaxé).</p>
+  <p style="margin-top:7px">© 2026 Kortics · Les probabilités affichées sont des estimations
+  statistiques, pas des certitudes.</p>
+  <div class="fliens">
+    <a href="/analyses">Matchs du jour</a>
+    <a href="/joueurs">Fiches joueurs</a>
+  </div>
+</div></footer>
+
 </body>
 </html>

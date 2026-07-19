@@ -4,184 +4,378 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kortics — Comprenez chaque match de tennis</title>
-    <meta name="description" content="Kortics analyse forme, surface, niveau et historique de chaque match de tennis (ATP & WTA) et vous en donne une lecture claire. Une aide à la décision honnête, pas un pronostic garanti.">
-    <meta name="theme-color" content="#0f766e">
+    <meta name="description" content="Kortics analyse classement, forme, surface et historique de chaque match de tennis (ATP & WTA) et vous en donne une lecture claire. Une aide à la décision honnête, pas un pronostic garanti.">
+    <meta name="theme-color" content="#080c14">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%BE%3C/text%3E%3C/svg%3E">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700&family=Red+Hat+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .p1 { color:#60a5fa; } /* joueur A - bleu */
-        .p2 { color:#fb923c; } /* joueur B - orange */
+/* =====================================================================
+   Direction visuelle — principale : Depot (« un terminal devenu site »).
+   Choisie parce que sa thèse EST notre positionnement : la confiance par
+   la retenue. Les références plus spectaculaires (lueur, nébuleuse)
+   feraient casino sur un produit de paris.
+
+   Traits préservés, à ne pas adoucir :
+     · rayon 6 px maximum (2 px sur les étiquettes)
+     · profondeur par pile de surfaces + filets 1 px, JAMAIS d'ombre
+     · inversion du tracking : titres serrés, corps aéré
+     · accent réservé — teal = action principale, sourcils, états positifs
+     · jamais de blanc pur en texte
+   Emprunt unique (Astro) : le sourcil de section comme seule ponctuation
+   colorée. Ni dégradé, ni pilule, ni zone claire.
+   ===================================================================== */
+:root{
+  --canvas:#080c14; --s1:#0f141f; --s2:#151b28; --s3:#1c2331;
+  --border:#262e3d; --border-fort:#333d50;
+  --t1:#e6e9ee; --t2:#9aa4b5; --t3:#6b7688;
+  --accent:#2dd4bf; --accent-bord:#14524b; --accent-fond:#0d2b28;
+  /* Identité des joueurs — option C : la couleur ne subsiste que sur la
+     barre, en teintes rabattues. Les noms et chiffres restent neutres pour
+     que le teal garde son statut d'accent unique. Bleu/orange conservés :
+     c'est la paire la plus sûre pour les daltoniens. */
+  --p1:#4a7fae; --p2:#ae7a4a;
+  --perte:#e5677a; --perte-fond:#2b1218; --perte-bord:#4a1f28;
+  --ambre:#e0b062; --ambre-fond:#241c0d; --ambre-bord:#4a3a1c;
+  --reflet:inset 0 1px 0 0 rgba(255,255,255,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--canvas);color:var(--t1);min-height:100vh;display:flex;flex-direction:column;
+  font:400 15px/1.6 'Red Hat Text',system-ui,-apple-system,sans-serif;letter-spacing:.025em}
+h1,h2,h3,.display{font-family:'Red Hat Display',system-ui,sans-serif;letter-spacing:-.025em}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;letter-spacing:0}
+.hidden{display:none!important}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px;width:100%}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input{font:inherit}
+
+/* ---------- navigation ---------- */
+nav{border-bottom:1px solid var(--border);background:var(--canvas);position:sticky;top:0;z-index:50}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--t1);
+  font-family:'Red Hat Display';font-weight:700;font-size:19px;letter-spacing:-.025em}
+.logo i{background:var(--accent);color:#04231f;font-style:normal;font-weight:700;
+  padding:1px 7px;border-radius:2px;font-size:15px}
+.logo em{color:var(--t3);font-style:normal;font-size:12px;font-weight:500;letter-spacing:.025em}
+#nav-actions{display:flex;align-items:center;gap:14px}
+
+/* ---------- boutons : 6 px, accent réservé au principal ---------- */
+.btn{display:inline-block;border-radius:6px;padding:9px 17px;font-weight:600;font-size:14px;
+  text-decoration:none;border:1px solid transparent;letter-spacing:.025em;transition:.15s}
+.btn-1{background:var(--accent);border-color:var(--accent-bord);color:#04231f;box-shadow:var(--reflet)}
+.btn-1:hover{background:#4fdfcd}
+.btn-2{background:var(--s2);border-color:var(--border-fort);color:var(--t1)}
+.btn-2:hover{background:var(--s3)}
+.btn-lien{color:var(--t2);font-size:14px;font-weight:500}
+.btn-lien:hover{color:var(--t1)}
+.btn-large{width:100%;text-align:center;padding:11px}
+
+/* ---------- structure ---------- */
+main{flex:1;padding:44px 0 60px}
+section{padding:52px 0;border-top:1px solid var(--border)}
+section:first-child{padding-top:0;border-top:0}
+.sourcil{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--accent);margin-bottom:10px}
+h1{font-size:40px;line-height:1.06;font-weight:700;max-width:17ch;text-wrap:balance}
+h2{font-size:27px;font-weight:600;margin-bottom:6px}
+.chapo{color:var(--t2);max-width:62ch;margin-top:14px}
+.note{color:var(--t3);font-size:13px}
+.encart{display:flex;gap:11px;align-items:flex-start;background:var(--s1);
+  border:1px solid var(--border);border-radius:6px;padding:13px 15px;margin-top:14px;
+  font-size:14px;color:var(--t2);box-shadow:var(--reflet)}
+.encart b{color:var(--t1);font-weight:600}
+.encart .ic{flex-shrink:0;font-size:15px;line-height:1.5}
+.alerte{background:var(--ambre-fond);border:1px solid var(--ambre-bord);color:var(--ambre);
+  border-radius:6px;padding:11px 13px;font-size:12.5px;line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+.alerte b{color:#f0cd8e;font-weight:700}
+
+/* ---------- bascule ATP / WTA ---------- */
+.bascule{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;
+  background:var(--s1);box-shadow:var(--reflet)}
+.bascule button{padding:9px 22px;font-size:14px;font-weight:600;color:var(--t2);letter-spacing:.025em}
+.bascule button.on{background:var(--accent);color:#04231f}
+.centre{display:flex;justify-content:center;margin-bottom:40px}
+
+/* ---------- indicateurs ---------- */
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;box-shadow:var(--reflet);margin-top:22px}
+.kpi{padding:15px;background:var(--s1);border-right:1px solid var(--border)}
+.kpi:last-child{border-right:0}
+.kpi .lab{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--t3);margin-bottom:5px}
+.kpi .n{font-family:ui-monospace,Menlo,monospace;font-size:22px;font-weight:600;letter-spacing:-.01em}
+.kpi .n.pos{color:var(--accent)}.kpi .n.neg{color:var(--perte)}
+
+/* ---------- étiquettes ---------- */
+.tag{display:inline-block;border-radius:2px;padding:3px 7px;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.09em;background:var(--s3);
+  border:1px solid var(--border);color:var(--t3)}
+.tag.acc{background:var(--accent-fond);border-color:var(--accent-bord);color:var(--accent)}
+
+/* ---------- carte match : le relevé d'instrument ---------- */
+#match-container{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.carte{background:var(--s1);border:1px solid var(--border);border-radius:6px;
+  box-shadow:var(--reflet);display:flex;flex-direction:column}
+.carte.haute{border-color:var(--accent-bord)}
+.entete-carte{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:11px 14px;border-bottom:1px solid var(--border);background:var(--s2)}
+.joueurs{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:start;padding:18px 14px 6px}
+.j.a{text-align:right}.j{min-width:0}
+.nom{font-family:'Red Hat Display';font-weight:600;font-size:16px;letter-spacing:-.02em;
+  color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cote{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--t2);margin-top:3px}
+.vs{color:var(--t3);font-size:10px;font-weight:700;padding-top:5px}
+.cotes-lab{text-align:center;font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--t3);padding-bottom:14px}
+.contexte{border-top:1px solid var(--border);padding:12px 14px 14px;flex:1}
+.contexte-titre{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--accent);text-align:center;margin-bottom:6px}
+
+.ligne{padding:6px 0}
+.lh{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:baseline;margin-bottom:5px}
+.lh.centre-v{align-items:center}
+.val{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:var(--t3)}
+.val.a{text-align:right}
+.val.fort{color:var(--t1);font-weight:700}
+.val.vide{color:var(--t3);opacity:.5}
+.val .n{color:var(--t3);opacity:.7}
+.lab{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--t3);white-space:nowrap;text-align:center}
+.barre{display:flex;height:2px;background:var(--s3);overflow:hidden}
+.barre i{display:block}
+.barre .ba{background:var(--p1)}.barre .bb{background:var(--p2)}
+.pastilles{display:flex;gap:3px}
+.pastilles.a{justify-content:flex-end}
+.pastille{display:inline-block;width:17px;height:17px;line-height:16px;text-align:center;
+  font-size:9px;font-weight:700;border-radius:2px;font-family:ui-monospace,monospace}
+.pv{background:var(--accent-fond);color:var(--accent);border:1px solid var(--accent-bord)}
+.pd{background:var(--perte-fond);color:var(--perte);border:1px solid var(--perte-bord)}
+.premiere{font-size:11.5px;color:var(--t3);text-align:center;margin-top:10px}
+.muet{text-align:center;padding:14px 0}
+.muet .titre{font-family:'Red Hat Display';font-weight:600;font-size:15px;color:var(--t2);letter-spacing:-.02em}
+.muet .sous{font-size:11.5px;color:var(--t3);margin-top:4px;line-height:1.5}
+
+.pied-carte{border-top:1px solid var(--border);background:var(--s2);padding:12px 14px}
+.pied-h{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.plab{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.lecture{font-family:'Red Hat Display';font-weight:600;font-size:16px;letter-spacing:-.02em;
+  color:var(--t1);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lecture .pct{font-family:ui-monospace,monospace;font-size:14px}
+.pts{font-family:ui-monospace,monospace;font-size:13px;letter-spacing:.16em;margin-top:2px}
+.pts.f3{color:var(--accent)}.pts.f2{color:var(--t2)}.pts.f1{color:var(--t3)}
+.conf-lab{font-size:9.5px;font-weight:600;margin-top:1px}
+.conf-lab.f3{color:var(--accent)}.conf-lab.f2{color:var(--t2)}.conf-lab.f1{color:var(--t3)}
+
+/* ---------- légende ---------- */
+.legende{font-size:12px;color:var(--t3);margin-bottom:22px}
+.legende .rangee{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-bottom:7px}
+.legende .cle{font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:10px;color:var(--t2)}
+.legende .pts{display:inline;margin:0}
+.legende p{max-width:74ch;line-height:1.6}
+
+/* ---------- résultats récents ---------- */
+#resultats-container{display:flex;flex-direction:column;border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;box-shadow:var(--reflet)}
+.res{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 14px;background:var(--s1);border-bottom:1px solid var(--border)}
+.res:last-child{border-bottom:0}
+.res-g{display:flex;align-items:center;gap:12px;min-width:0}
+.res-date{font-family:ui-monospace,monospace;font-size:11px;color:var(--t3);width:42px;flex-shrink:0}
+.res-nom{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-nom b{font-weight:600;color:var(--t1)}
+.res-nom span{color:var(--t3);font-size:12px}
+.res-d{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.res-score{font-family:ui-monospace,monospace;font-size:11px;color:var(--t3)}
+.res-etat{font-size:10px;font-weight:700;padding:2px 6px;border-radius:2px;
+  text-transform:uppercase;letter-spacing:.08em}
+.res-etat.g{background:var(--accent-fond);color:var(--accent);border:1px solid var(--accent-bord)}
+.res-etat.p{background:var(--perte-fond);color:var(--perte);border:1px solid var(--perte-bord)}
+.res-pl{font-family:ui-monospace,monospace;font-size:13px;font-weight:600;width:62px;text-align:right}
+.res-pl.pos{color:var(--accent)}.res-pl.neg{color:var(--perte)}
+
+.vide{grid-column:1/-1;text-align:center;padding:34px 20px;background:var(--s1);
+  border:1px dashed var(--border-fort);border-radius:6px;color:var(--t2);font-size:14px}
+.erreur{grid-column:1/-1;background:var(--perte-fond);border:1px solid var(--perte-bord);
+  color:var(--perte);padding:18px;border-radius:6px}
+
+/* ---------- fenêtre de connexion ---------- */
+#auth-modal{position:fixed;inset:0;z-index:100;background:rgba(4,6,10,.86);
+  display:flex;align-items:center;justify-content:center;padding:18px}
+.modal-boite{background:var(--s1);border:1px solid var(--border);border-radius:6px;
+  width:100%;max-width:420px;padding:26px;position:relative;box-shadow:var(--reflet)}
+.fermer{position:absolute;top:14px;right:14px;color:var(--t3);font-size:20px;line-height:1}
+.fermer:hover{color:var(--t1)}
+.modal-boite h2{font-size:21px;margin-bottom:4px}
+.modal-boite .chapo{font-size:13.5px;margin:0 0 20px}
+.champ{margin-bottom:14px}
+.champ label{display:block;font-size:9.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--t3);margin-bottom:5px}
+.champ input{width:100%;background:var(--canvas);border:1px solid var(--border);border-radius:6px;
+  padding:10px 12px;color:var(--t1);font-size:14px;letter-spacing:.025em}
+.champ input:focus{outline:none;border-color:var(--accent-bord)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.oubli{display:block;width:100%;text-align:center;margin-top:14px;font-size:12.5px;
+  color:var(--t3);text-decoration:underline}
+.oubli:hover{color:var(--accent)}
+.msg{border-radius:6px;padding:10px 12px;font-size:12.5px;margin-bottom:14px;line-height:1.5}
+.msg.err{background:var(--perte-fond);border:1px solid var(--perte-bord);color:var(--perte)}
+.msg.ok{background:var(--accent-fond);border:1px solid var(--accent-bord);color:var(--accent)}
+
+/* ---------- pied de page ---------- */
+footer{border-top:1px solid var(--border);background:var(--canvas);margin-top:40px}
+footer .wrap{padding-top:26px;padding-bottom:30px;font-size:12px;color:var(--t3);line-height:1.65}
+footer b{color:var(--t2);font-weight:600}
+.age{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);
+  border-radius:6px;padding:5px 11px;margin-bottom:12px;font-size:12px;
+  font-weight:600;color:var(--t2)}
+.age i{background:var(--accent);color:#04231f;font-style:normal;font-weight:700;
+  border-radius:2px;padding:1px 5px;font-size:11px}
+
+@media(max-width:840px){
+  #match-container{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+  .kpi{border-bottom:1px solid var(--border)}
+  h1{font-size:29px}
+  .pastille{width:15px;height:15px;line-height:14px;font-size:8px}
+  .lab{font-size:9px}
+}
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+<body>
 
-    <!-- NAVIGATION -->
-    <nav class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <a href="/" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                <div class="bg-teal-500 text-slate-950 font-black px-2.5 py-1 rounded text-sm tracking-wider">K</div>
-                <span class="text-xl font-bold tracking-tight">Kortics<span class="text-slate-500 font-semibold text-sm"> ·tennis</span></span>
-            </a>
-            <div class="flex items-center space-x-4" id="nav-actions">
-                <!-- Boutons injectés par JS selon l'état de connexion -->
-            </div>
-        </div>
-    </nav>
+    <nav><div class="wrap">
+        <a class="logo" href="/"><i>K</i>Kortics<em>·tennis</em></a>
+        <div id="nav-actions"><!-- injecté par JS selon l'état de connexion --></div>
+    </div></nav>
 
-    <!-- FENÊTRE DE CONNEXION (MODAL) -->
-    <div id="auth-modal" class="fixed inset-0 z-[100] hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-8 relative shadow-2xl">
-            <button onclick="fermerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white" aria-label="Fermer">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-            <h2 class="text-2xl font-bold text-white mb-2">Votre compte Kortics</h2>
-            <p class="text-slate-400 text-sm mb-6">Connectez-vous pour accéder aux analyses.</p>
+    <!-- FENÊTRE DE CONNEXION -->
+    <div id="auth-modal" class="hidden">
+        <div class="modal-boite">
+            <button class="fermer" onclick="fermerModal()" aria-label="Fermer">✕</button>
+            <h2>Votre compte Kortics</h2>
+            <p class="chapo">Tout est gratuit. Le compte sert seulement à suivre le projet.</p>
 
-            <div id="auth-error" class="hidden bg-red-900/50 border border-red-500 text-red-200 text-xs p-3 rounded mb-4"></div>
-            <div id="auth-success" class="hidden bg-teal-900/50 border border-teal-500 text-teal-200 text-xs p-3 rounded mb-4"></div>
+            <div id="auth-error" class="msg err hidden"></div>
+            <div id="auth-success" class="msg ok hidden"></div>
 
-            <!-- Mode "nouveau mot de passe" : affiché uniquement au retour du lien de réinitialisation -->
-            <div id="bloc-nouveau-mdp" class="hidden space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nouveau mot de passe</label>
-                    <input type="password" id="nouveau-mdp-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="••••••••">
+            <!-- Mode "nouveau mot de passe" : au retour du lien de réinitialisation -->
+            <div id="bloc-nouveau-mdp" class="hidden">
+                <div class="champ">
+                    <label for="nouveau-mdp-input">Nouveau mot de passe</label>
+                    <input type="password" id="nouveau-mdp-input" placeholder="••••••••">
                 </div>
-                <button onclick="definirNouveauMotDePasse()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded transition-colors text-sm">Enregistrer le nouveau mot de passe</button>
+                <button class="btn btn-1 btn-large" onclick="definirNouveauMotDePasse()">Enregistrer le nouveau mot de passe</button>
             </div>
 
-            <div id="bloc-auth" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Email</label>
-                    <input type="email" id="email-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="votre@email.com">
+            <div id="bloc-auth">
+                <div class="champ">
+                    <label for="email-input">Email</label>
+                    <input type="email" id="email-input" placeholder="votre@email.com">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Mot de passe</label>
-                    <input type="password" id="password-input" class="w-full bg-slate-900 border border-slate-700 rounded p-2.5 text-white focus:border-teal-500 focus:outline-none transition-colors" placeholder="••••••••">
+                <div class="champ">
+                    <label for="password-input">Mot de passe</label>
+                    <input type="password" id="password-input" placeholder="••••••••">
                 </div>
-                <div class="grid grid-cols-2 gap-4 pt-2">
-                    <button onclick="creerCompte()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded transition-colors text-sm">S'inscrire</button>
-                    <button onclick="seConnecter()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold py-2.5 rounded transition-colors text-sm">Se connecter</button>
+                <div class="duo">
+                    <button class="btn btn-2" onclick="creerCompte()">S'inscrire</button>
+                    <button class="btn btn-1" onclick="seConnecter()">Se connecter</button>
                 </div>
-                <div class="pt-1 text-center">
-                    <button onclick="motDePasseOublie()" class="text-xs text-slate-400 hover:text-teal-400 underline transition-colors">Mot de passe oublié ?</button>
-                </div>
+                <button class="oubli" onclick="motDePasseOublie()">Mot de passe oublié ?</button>
             </div>
         </div>
     </div>
 
-    <!-- CONTENU PRINCIPAL -->
-    <main class="max-w-6xl mx-auto px-4 py-8 w-full flex-1">
+    <main><div class="wrap">
 
-        <!-- Intro honnête -->
-        <div class="mb-10 max-w-2xl">
-            <div class="text-xs font-bold uppercase tracking-widest text-teal-400 mb-2">Aide à la décision · Tennis ATP &amp; WTA</div>
-            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">Comprenez chaque match en un coup d'œil.</h1>
-            <p class="text-slate-400 mt-3">Kortics analyse forme, surface, niveau et historique de chaque joueur, et vous en donne une lecture claire. Une analyse honnête — pas un pronostic garanti.</p>
+        <section>
+            <div class="sourcil">Aide à la décision · Tennis ATP &amp; WTA</div>
+            <h1>Le relevé du match, pas le pronostic.</h1>
+            <p class="chapo">Classement officiel, forme récente, bilan par surface, face-à-face.
+               Nous montrons ce que nous mesurons — et nous nous taisons quand nous ne savons pas.</p>
 
-            <!-- Indépendance : aucun concurrent financé par affiliation ne peut afficher ceci. -->
-            <div class="mt-6 flex items-start gap-3 bg-teal-500/5 border border-teal-500/20 rounded-xl px-4 py-3">
-                <span class="text-teal-400 text-lg shrink-0 mt-0.5">🛡️</span>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                    <b class="text-white">Nous ne touchons pas un centime des bookmakers.</b>
-                    Aucun lien d'affiliation, aucune commission sur vos pertes. Nous n'avons
-                    aucun intérêt à ce que vous pariez plus — seulement à ce que vous décidiez mieux.
-                </p>
+            <div class="encart"><span class="ic">🛡️</span><span>
+                <b>Nous ne touchons pas un centime des bookmakers.</b>
+                Aucun lien d'affiliation, aucune commission sur vos pertes. Nous n'avons aucun
+                intérêt à ce que vous pariez plus — seulement à ce que vous décidiez mieux.
+            </span></div>
+            <div class="encart"><span class="ic">🎁</span><span>
+                <b>Tout est gratuit pendant la phase d'ouverture.</b>
+                Toutes les analyses, tous les matchs, sans paiement.
+            </span></div>
+        </section>
+
+        <section>
+            <div class="centre" style="margin-bottom:0">
+                <div class="bascule">
+                    <button id="btn-core" onclick="changerCircuit('ATP')">ATP (hommes)</button>
+                    <button id="btn-prime" onclick="changerCircuit('WTA')">WTA (femmes)</button>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="sourcil">Performance réelle</div>
+            <h2>Affichée telle quelle, gagnée comme perdue.</h2>
+            <p class="note">Résultats passés sur les matchs analysés, mise à plat d'une unité.
+               Le passé ne garantit pas l'avenir.</p>
+            <div class="kpis">
+                <div class="kpi"><div class="lab">Matchs analysés</div><div id="kpi-total" class="n">--</div></div>
+                <div class="kpi"><div class="lab">Taux de réussite</div><div id="kpi-winrate" class="n">-- %</div></div>
+                <div class="kpi"><div class="lab">Cote moyenne</div><div id="kpi-cote" class="n">--</div></div>
+                <div class="kpi"><div class="lab">Bilan</div><div id="kpi-profit" class="n">-- u</div></div>
+                <div class="kpi"><div class="lab">ROI</div><div id="kpi-roi" class="n">-- %</div></div>
+            </div>
+            <div id="circuit-note" class="alerte hidden" style="margin-top:14px"></div>
+        </section>
+
+        <section>
+            <div class="sourcil" id="titre-live">Analyse du jour</div>
+            <h2>Les matchs du jour</h2>
+            <p class="note" style="margin-bottom:20px">Le contexte d'abord. Notre lecture ensuite, avec sa réserve.</p>
+
+            <!-- La confiance mesure notre distance au marché : c'est le seul repère qui
+                 suit réellement nos résultats passés. -->
+            <div class="legende">
+                <div class="rangee">
+                    <span class="cle">Confiance</span>
+                    <span><span class="pts f3">●●●</span> élevée</span>
+                    <span><span class="pts f2">●●○</span> modérée</span>
+                    <span><span class="pts f1">●○○</span> faible</span>
+                    <span>⚖️ match serré</span>
+                </div>
+                <p>Elle indique à quel point notre estimation rejoint celle du marché. Quand les deux
+                   s'éloignent, nos analyses se sont montrées nettement moins fiables — c'est une
+                   réserve sur notre lecture, pas une garantie de gain.</p>
             </div>
 
-            <div class="mt-3 flex items-start gap-3 bg-slate-800/40 border border-slate-700/60 rounded-xl px-4 py-3">
-                <span class="text-slate-400 text-lg shrink-0 mt-0.5">🎁</span>
-                <p class="text-sm text-slate-300 leading-relaxed">
-                    <b class="text-white">Tout est gratuit pendant la phase d'ouverture.</b>
-                    Toutes les analyses, tous les matchs, sans paiement. Créez un compte si vous
-                    voulez suivre le projet — c'est tout.
-                </p>
-            </div>
-        </div>
+            <div id="match-container"></div>
+        </section>
 
-        <!-- Sélecteur circuit -->
-        <div class="flex justify-center mb-10">
-            <div class="bg-slate-800/60 p-1.5 rounded-lg inline-flex border border-slate-700/60 backdrop-blur">
-                <button id="btn-core" onclick="changerCircuit('ATP')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm">ATP (hommes)</button>
-                <button id="btn-prime" onclick="changerCircuit('WTA')" class="px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white">WTA (femmes)</button>
-            </div>
-        </div>
+        <section>
+            <div class="sourcil">Historique vérifiable</div>
+            <h2>Résultats récents</h2>
+            <p class="note" style="margin-bottom:20px">Nos lectures passées — favori du modèle,
+               mise à plat d'une unité — affichées telles quelles, gagnées comme perdues.</p>
+            <div id="resultats-container"></div>
+        </section>
 
-        <!-- Performance transparente -->
-        <div class="mb-14">
-            <h2 class="text-lg font-bold text-white mb-2 flex items-center space-x-2">
-                <svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                <span>Performance réelle — en toute transparence</span>
-            </h2>
-            <p class="text-xs text-slate-500 mb-6">Résultats passés sur les matchs analysés. Le passé ne garantit pas l'avenir.</p>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Matchs analysés</div><div id="kpi-total" class="text-2xl font-mono font-bold text-white">--</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Taux de réussite</div><div id="kpi-winrate" class="text-2xl font-mono font-bold text-white">-- %</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Cote moyenne</div><div id="kpi-cote" class="text-2xl font-mono font-bold text-white">--</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Bilan (mise à plat)</div><div id="kpi-profit" class="text-2xl font-mono font-bold text-white">-- u</div></div>
-                <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 backdrop-blur"><div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">ROI (transparent)</div><div id="kpi-roi" class="text-2xl font-mono font-bold text-white">-- %</div></div>
-            </div>
-            <div id="circuit-note" class="hidden mt-4 text-xs bg-amber-500/10 border border-amber-500/30 text-amber-200/90 rounded-lg px-4 py-3 leading-relaxed"></div>
-        </div>
+    </div></main>
 
-        <hr class="border-slate-800 mb-10">
-
-        <div class="mb-8">
-            <div class="flex items-center space-x-2 text-teal-400 text-xs font-semibold tracking-wider uppercase mb-2">
-                <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span></span>
-                <span id="titre-live">Analyse du jour</span>
-            </div>
-            <h2 class="text-3xl font-bold tracking-tight text-white">Les matchs du jour</h2>
-        </div>
-
-        <!-- Légende de la confiance. Elle mesure notre distance au marché, parce que
-             c'est le seul repère qui suit réellement nos résultats passés. -->
-        <div class="text-[11px] text-slate-500 mb-6 space-y-1">
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span class="font-semibold text-slate-400 uppercase tracking-wider">Confiance</span>
-                <span><span class="text-teal-400 font-mono tracking-widest">●●●</span> élevée</span>
-                <span><span class="text-slate-300 font-mono tracking-widest">●●○</span> modérée</span>
-                <span><span class="text-slate-400 font-mono tracking-widest">●○○</span> faible</span>
-                <span><span class="text-slate-400">⚖️</span> match serré</span>
-            </div>
-            <p class="text-slate-600 italic max-w-3xl leading-relaxed">
-                Elle indique à quel point notre estimation rejoint celle du marché. Quand les deux
-                s'éloignent, nos analyses se sont montrées nettement moins fiables — c'est donc une
-                réserve sur notre lecture, pas une garantie de gain.
-            </p>
-        </div>
-
-        <div id="match-container" class="grid gap-6 md:grid-cols-2 relative"></div>
-
-        <!-- RÉSULTATS RÉCENTS (transparence — visible par tous) -->
-        <div class="mt-16">
-            <div class="flex items-center space-x-2 text-teal-400 text-xs font-semibold tracking-wider uppercase mb-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>Historique vérifiable</span>
-            </div>
-            <h2 class="text-3xl font-bold tracking-tight text-white mb-1">Résultats récents</h2>
-            <p class="text-xs text-slate-500 mb-6">Nos pronostics passés — favori du modèle, mise à plat 1 unité — affichés tels quels, gagnés comme perdus.</p>
-            <div id="resultats-container" class="space-y-2"></div>
-        </div>
-    </main>
-
-    <!-- FOOTER LÉGAL -->
-    <footer class="border-t border-slate-800 bg-slate-950/50 mt-10">
-        <div class="max-w-6xl mx-auto px-4 py-8 text-xs text-slate-500 leading-relaxed">
-            <div class="inline-flex items-center gap-2 font-bold text-slate-300 border border-slate-700 rounded-lg px-3 py-1.5 mb-3">
-                <span class="bg-teal-500 text-slate-950 rounded-full w-6 h-6 grid place-items-center font-black">18</span> Interdit aux mineurs
-            </div>
-            <p><b class="text-slate-300">Kortics est un outil d'analyse et d'aide à la décision.</b> Il ne prend aucun pari et ne garantit aucun gain. Les paris sportifs comportent un risque de perte d'argent. Jouer comporte des risques : endettement, isolement, dépendance. Pour être aidé, appelez le <b class="text-slate-300">09 74 75 13 13</b> (Joueurs Info Service, appel non surtaxé).</p>
-            <p class="mt-2">© 2026 Kortics · Les probabilités affichées sont des estimations statistiques, pas des certitudes.</p>
-        </div>
-    </footer>
+    <footer><div class="wrap">
+        <div class="age"><i>18</i> Interdit aux mineurs</div>
+        <p><b>Kortics est un outil d'analyse et d'aide à la décision.</b> Il ne prend aucun pari et
+        ne garantit aucun gain. Les paris sportifs comportent un risque de perte d'argent. Jouer
+        comporte des risques : endettement, isolement, dépendance. Pour être aidé, appelez le
+        <b>09 74 75 13 13</b> (Joueurs Info Service, appel non surtaxé).</p>
+        <p style="margin-top:7px">© 2026 Kortics · Les probabilités affichées sont des estimations
+        statistiques, pas des certitudes.</p>
+    </div></footer>
 
     <script>
         const SUPABASE_URL = 'https://otbonobfeyurkfuwavoa.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_8tjc55jb1aAqJGc_n3TCJQ_Twxl3q_P';
-        const STRIPE_LINK  = 'https://buy.stripe.com/test_cNibJ28wyh06ewZ9RVaEE00';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let matchsDuJourTous = [];        // matchs du jour, tous circuits
@@ -215,13 +409,11 @@
             const navContainer = document.getElementById('nav-actions');
             // Phase d'ouverture : tout est gratuit, aucun paiement proposé.
             if (sessionActuelle) {
-                navContainer.innerHTML = `
-                    <div class="flex items-center space-x-4">
-                        <button onclick="seDeconnecter()" class="text-slate-400 hover:text-white text-sm font-semibold transition-colors">Déconnexion</button>
-                    </div>`;
+                navContainer.innerHTML =
+                    `<button class="btn-lien" onclick="seDeconnecter()">Déconnexion</button>`;
             } else {
-                navContainer.innerHTML = `
-                    <button onclick="ouvrirModal()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 text-sm font-bold py-2 px-4 rounded transition-colors">Créer un compte gratuit</button>`;
+                navContainer.innerHTML =
+                    `<button class="btn btn-1" onclick="ouvrirModal()">Créer un compte gratuit</button>`;
             }
         }
 
@@ -381,7 +573,8 @@
 
                 await verifierSession();
             } catch (err) {
-                document.getElementById('match-container').innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">Erreur de chargement : ${err.message}</div>`;
+                document.getElementById('match-container').innerHTML =
+                    `<div class="erreur">Erreur de chargement : ${err.message}</div>`;
             }
         }
 
@@ -433,10 +626,10 @@
         // réserve sur nous, pas une promesse de gain.
         function confiance(m) {
             const e = ecartMarche(m);
-            if (e == null)  return { label: 'Non mesurable', dots: '○○○', cls: 'text-slate-400' };
-            if (e < 10)     return { label: 'Confiance élevée',  dots: '●●●', cls: 'text-teal-400' };
-            if (e < 20)     return { label: 'Confiance modérée', dots: '●●○', cls: 'text-slate-300' };
-            return            { label: 'Confiance faible',  dots: '●○○', cls: 'text-slate-400' };
+            if (e == null)  return { label: 'Non mesurable', dots: '○○○', cls: 'f1' };
+            if (e < 10)     return { label: 'Confiance élevée',  dots: '●●●', cls: 'f3' };
+            if (e < 20)     return { label: 'Confiance modérée', dots: '●●○', cls: 'f2' };
+            return            { label: 'Confiance faible',  dots: '●○○', cls: 'f1' };
         }
 
         // =====================================================================
@@ -459,27 +652,26 @@
         // Une ligne de comparaison : valeur A · libellé · valeur B, + barre de partage.
         // part = poids visuel du joueur A entre 0 et 1 (null = pas de barre).
         // moinsCestMieux : pour le classement, où le n°1 est le meilleur.
+        //
+        // Option C : les valeurs restent neutres, seule la GRAISSE désigne qui mène.
+        // La couleur ne subsiste que sur la barre, en teintes rabattues.
         function ligneContexte(label, aide, txtA, txtB, part, okA, okB, valA, valB, moinsCestMieux) {
-            const inconnu = 'text-slate-600';
             const cmp = (x, y) => moinsCestMieux ? x < y : x > y;
             const gagneA = okA && okB && valA != null && valB != null && cmp(valA, valB);
             const gagneB = okA && okB && valA != null && valB != null && cmp(valB, valA);
-            const clsA = !okA ? inconnu : (gagneA ? 'p1 font-bold' : 'text-slate-400');
-            const clsB = !okB ? inconnu : (gagneB ? 'p2 font-bold' : 'text-slate-400');
+            const clsA = !okA ? 'vide' : (gagneA ? 'fort' : '');
+            const clsB = !okB ? 'vide' : (gagneB ? 'fort' : '');
             const pct = (part == null || !okA || !okB) ? null : Math.max(4, Math.min(96, part*100));
             const barre = pct == null
-                ? `<div class="h-1 rounded-full bg-slate-700/30"></div>`
-                : `<div class="flex h-1 rounded-full overflow-hidden bg-slate-700/40">
-                       <div style="width:${pct}%" class="bg-blue-400/70"></div>
-                       <div style="width:${100-pct}%" class="bg-orange-400/70"></div>
-                   </div>`;
+                ? `<div class="barre"></div>`
+                : `<div class="barre"><i class="ba" style="width:${pct}%"></i><i class="bb" style="width:${100-pct}%"></i></div>`;
             return {
                 complet: !!(okA && okB),   // ligne réellement comparable des deux côtés
-                html: `<div class="py-1.5">
-                        <div class="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3 mb-1">
-                            <div class="text-right font-mono text-sm ${clsA}">${okA ? txtA : '—'}</div>
-                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold text-center whitespace-nowrap" title="${aide}">${label}</div>
-                            <div class="text-left font-mono text-sm ${clsB}">${okB ? txtB : '—'}</div>
+                html: `<div class="ligne">
+                        <div class="lh">
+                            <div class="val a ${clsA}">${okA ? txtA : '—'}</div>
+                            <div class="lab" title="${aide}">${label}</div>
+                            <div class="val ${clsB}">${okB ? txtB : '—'}</div>
                         </div>
                         ${barre}
                     </div>`,
@@ -496,26 +688,25 @@
             const ordre = cote === 'A' ? derniers.slice().reverse() : derniers;  // le plus récent près du centre
             const html = ordre.map(x => {
                 const t = `${x.g ? 'Victoire' : 'Défaite'} contre ${x.adv || '?'}${x.s ? ' (' + x.s + ')' : ''}${x.t ? ' — ' + x.t : ''}${x.d ? ' le ' + x.d : ''}`;
-                const cls = x.g ? 'bg-teal-500/20 text-teal-300' : 'bg-red-500/15 text-red-300/80';
-                return `<span class="inline-block w-5 h-5 leading-5 text-center text-[10px] font-bold rounded ${cls}" title="${t.replace(/"/g, '&quot;')}">${x.g ? 'V' : 'D'}</span>`;
-            }).join(' ');
-            return `<div class="flex gap-1 ${cote === 'A' ? 'justify-end' : 'justify-start'}">${html}</div>`;
+                return `<span class="pastille ${x.g ? 'pv' : 'pd'}" title="${t.replace(/"/g, '&quot;')}">${x.g ? 'V' : 'D'}</span>`;
+            }).join('');
+            return `<div class="pastilles ${cote === 'A' ? 'a' : ''}">${html}</div>`;
         }
 
         function ligneDerniers(m) {
             const pa = pastilles(m.derniers_a, 'A'), pb = pastilles(m.derniers_b, 'B');
             if (!pa && !pb) return null;
             const aide = "Les cinq derniers matchs disputés, tous circuits confondus (y compris Challenger). Survolez une pastille pour l'adversaire et le score.";
-            const vide = `<div class="text-slate-600 font-mono text-sm">—</div>`;
+            const vide = `<div class="val vide">—</div>`;
             return {
                 complet: !!(pa && pb),
-                html: `<div class="py-1.5">
-                        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-1">
+                html: `<div class="ligne">
+                        <div class="lh centre-v">
                             <div>${pa || vide}</div>
-                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold text-center whitespace-nowrap" title="${aide}">5 derniers</div>
+                            <div class="lab" title="${aide}">5 derniers</div>
                             <div>${pb || vide}</div>
                         </div>
-                        <div class="h-1 rounded-full bg-slate-700/30"></div>
+                        <div class="barre"></div>
                     </div>`,
             };
         }
@@ -523,7 +714,7 @@
         function lignesContexte(m) {
             const surf = surfaceFr(m.surface);
             const l = [];
-            const nb = n => n != null ? ` <span class="text-slate-600">(${n})</span>` : '';
+            const nb = n => n != null ? ` <span class="n">(${n})</span>` : '';
 
             // 1) CLASSEMENT OFFICIEL — remplace l'Elo à l'affichage. L'Elo reste
             //    l'entrée du modèle, mais « n°42 » parle à tout le monde et se
@@ -618,22 +809,20 @@
 
         function blocContexte(m) {
             if (contexteFaible(m))
-                return `<div class="text-center py-4">
-                            <div class="text-base font-bold text-slate-300">📭 Joueurs trop peu connus de notre base</div>
-                            <div class="text-[11px] text-slate-500 mt-1">Nous n'avons pas assez de matchs sur eux pour dresser un contexte fiable. Souvent le cas des joueurs qui arrivent du circuit secondaire.</div>
+                return `<div class="muet">
+                            <div class="titre">📭 Joueurs trop peu connus de notre base</div>
+                            <div class="sous">Nous n'avons pas assez de matchs sur eux pour dresser un contexte fiable. Souvent le cas des joueurs qui arrivent du circuit secondaire.</div>
                         </div>`;
             const l = lignesContexte(m);
             const premiere = l.premiereRencontre
-                ? `<div class="text-[11px] text-slate-500 text-center mt-3">Première rencontre entre ces deux joueurs.</div>` : '';
+                ? `<div class="premiere">Première rencontre entre ces deux joueurs.</div>` : '';
             return l.map(x => x.html).join('') + premiere;
         }
 
         function afficherInterface() {
             const btnCore=document.getElementById('btn-core'), btnPrime=document.getElementById('btn-prime'), titreLive=document.getElementById('titre-live');
-            const on="px-6 py-2.5 rounded-md text-sm font-bold transition-all bg-teal-500 text-slate-900 shadow-sm";
-            const off="px-6 py-2.5 rounded-md text-sm font-bold transition-all text-slate-400 hover:text-white";
-            if (circuitActif==='ATP'){ btnCore.className=on; btnPrime.className=off; titreLive.innerText="Circuit ATP (hommes)"; }
-            else { btnPrime.className=on; btnCore.className=off; titreLive.innerText="Circuit WTA (femmes)"; }
+            if (circuitActif==='ATP'){ btnCore.className='on'; btnPrime.className=''; titreLive.innerText="Circuit ATP (hommes)"; }
+            else { btnPrime.className='on'; btnCore.className=''; titreLive.innerText="Circuit WTA (femmes)"; }
 
             // ATP et WTA sont désormais actifs tous les deux.
             document.getElementById('circuit-note').classList.add('hidden');
@@ -652,12 +841,12 @@
                 document.getElementById('kpi-winrate').innerText = ((gagnes/total)*100).toFixed(1) + ' %';
                 document.getElementById('kpi-cote').innerText = coteMoy ? coteMoy.toFixed(2) : '--';
                 document.getElementById('kpi-profit').innerText = (profit>0?'+':'') + profit.toFixed(1) + ' u';
-                document.getElementById('kpi-profit').className = "text-2xl font-mono font-bold " + (profit>=0?"text-teal-400":"text-red-400");
+                document.getElementById('kpi-profit').className = 'n ' + (profit>=0?'pos':'neg');
                 document.getElementById('kpi-roi').innerText = (roi>0?'+':'') + roi.toFixed(1) + ' %';
-                document.getElementById('kpi-roi').className = "text-2xl font-mono font-bold " + (roi>=0?"text-teal-400":"text-red-400");
+                document.getElementById('kpi-roi').className = 'n ' + (roi>=0?'pos':'neg');
             } else {
                 ['kpi-total','kpi-winrate','kpi-cote','kpi-profit','kpi-roi'].forEach(id=>{
-                    document.getElementById(id).className = "text-2xl font-mono font-bold text-white";
+                    document.getElementById(id).className = 'n';
                 });
                 document.getElementById('kpi-total').innerText = '--';
                 document.getElementById('kpi-winrate').innerText = '-- %';
@@ -676,12 +865,10 @@
             matchsDuJour.sort((a,b)=> (ecartMarche(a) ?? 999) - (ecartMarche(b) ?? 999));
 
             if (matchsDuJour.length === 0) {
-                container.innerHTML = `<div class="col-span-2 text-center py-10 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400">Aucun match analysé pour aujourd'hui pour le moment.</p></div>`;
+                container.innerHTML = `<div class="vide">Aucun match analysé pour aujourd'hui pour le moment.</div>`;
                 return;
             }
 
-            // Le MATCH (joueurs + cotes marché) est visible par tous. Seule NOTRE ANALYSE
-            // (favori + estimation) est réservée au Premium — 1re analyse du jour offerte.
             matchsDuJour.forEach((match, index) => {
                 // Phase d'ouverture : toutes les analyses sont accessibles à tous.
                 // La logique Premium (isPremium) est conservée pour plus tard, pas supprimée.
@@ -692,88 +879,73 @@
                 // Match serré = notre estimation est à ~50/50. On ne masquait déjà le
                 // favori que si, EN PLUS, on contredit le marché ou qu'on ne peut pas
                 // le vérifier faute de cotes : annoncer « je ne sais pas » sur un match
-                // à 1,45 serait incohérent. (Critère repris de l'ancien indice, qui
-                // basculait en « serré » sous 56 % de proba pour le favori.)
+                // à 1,45 serait incohérent.
                 const cotesConnues = (match.odds_bookmaker != null && match.odds_b != null);
                 const serre = (match.proba_ia != null && Math.abs(match.proba_ia - 50) < 6
                                && (!cotesConnues || contreLeMarche(match)));
                 const hauteConf = (ecartMarche(match) != null && ecartMarche(match) < 10);
-                const borderClass = (hauteConf && analyseVisible) ? 'border-teal-500/40' : 'border-slate-700/60';
 
                 let analyseBox;
-                if (!analyseVisible) {
-                    analyseBox = `<div class="flex items-center justify-center gap-2 text-slate-500 py-1">
-                           <span class="text-lg">🔒</span><span class="text-sm">Notre analyse est réservée au Premium</span>
-                       </div>`;
-                } else if (donneesInsuffisantes(match) || contexteFaible(match)) {
+                if (donneesInsuffisantes(match) || contexteFaible(match)) {
                     // Deux chemins vers le même refus : soit notre estimation s'écarte
                     // trop du marché (signe qu'on ignore ces joueurs), soit le contexte
                     // lui-même est trop maigre. On ne conclut pas sur ce qu'on ne sait pas.
-                    analyseBox = `<div class="text-center py-1">
-                           <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
-                           <div class="text-base font-bold text-slate-300">📭 Données insuffisantes sur ces joueurs</div>
-                           <div class="text-[11px] text-slate-500 mt-1">Nous préférons ne rien annoncer plutôt qu'une estimation peu fiable.</div>
+                    analyseBox = `<div class="muet" style="padding:2px 0">
+                           <div class="plab">Notre analyse</div>
+                           <div class="titre" style="margin-top:3px">📭 Données insuffisantes sur ces joueurs</div>
+                           <div class="sous">Nous préférons ne rien annoncer plutôt qu'une estimation peu fiable.</div>
                        </div>`;
                 } else if (serre) {
-                    analyseBox = `<div class="text-center py-1">
-                           <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre analyse</div>
-                           <div class="text-base font-bold text-slate-300">⚖️ Match serré — pas de favori net</div>
+                    analyseBox = `<div class="muet" style="padding:2px 0">
+                           <div class="plab">Notre analyse</div>
+                           <div class="titre" style="margin-top:3px">⚖️ Match serré — pas de favori net</div>
                        </div>`;
                 } else {
                     // Divergence avec le marché = signal de prudence, pas d'opportunité.
                     const avertissement = contreLeMarche(match)
-                        ? `<div class="mt-3 flex items-start gap-2 text-[11px] leading-snug text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2">
-                               <span class="shrink-0">⚠️</span>
-                               <span>Notre favori n'est <b>pas</b> celui du marché. Sur ce type de match, nos analyses se sont montrées <b>nettement moins fiables</b> — à considérer avec prudence.</span>
-                           </div>` : '';
-                    analyseBox = `<div class="flex items-center justify-between gap-3">
-                           <div class="min-w-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre lecture</div>
-                               <div class="text-base font-bold truncate ${favoriA ? 'p1' : 'p2'}">${pickNom} · <span class="font-mono">${pickProba}%</span></div>
+                        ? `<div class="alerte" style="margin-top:11px"><span>⚠️</span>
+                               <span>Notre favori n'est <b>pas</b> celui du marché. Sur ce type de match,
+                               nos analyses se sont montrées <b>nettement moins fiables</b> — à considérer
+                               avec prudence.</span></div>` : '';
+                    analyseBox = `<div class="pied-h">
+                           <div style="min-width:0">
+                               <div class="plab">Notre lecture</div>
+                               <div class="lecture">${pickNom} · <span class="pct">${pickProba}%</span></div>
                            </div>
-                           <div class="text-right shrink-0">
-                               <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Confiance</div>
-                               <div class="text-base font-bold ${conf.cls}"><span class="font-mono tracking-widest">${conf.dots}</span></div>
-                               <div class="text-[10px] font-semibold ${conf.cls}">${conf.label}</div>
+                           <div style="text-align:right;flex-shrink:0">
+                               <div class="plab">Confiance</div>
+                               <div class="pts ${conf.cls}">${conf.dots}</div>
+                               <div class="conf-lab ${conf.cls}">${conf.label}</div>
                            </div>
                        </div>${avertissement}`;
                 }
 
-                const ctaPremium = '';   // aucun paiement proposé pendant la phase d'ouverture
-
                 container.innerHTML += `
-                    <div class="bg-slate-800/40 border ${borderClass} rounded-xl p-6 flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-4">
-                                <span class="bg-slate-700/50 px-2.5 py-1 rounded-full">🎾 ${match.tournament || 'Tournoi'}${match.surface ? ' · ' + surfaceFr(match.surface) : ''}</span>
-<!-- la confiance est annoncée en pied de carte ; ici la bordure teal suffit -->
+                    <div class="carte${hauteConf ? ' haute' : ''}">
+                        <div class="entete-carte">
+                            <span class="tag">${match.tournament || 'Tournoi'}${match.surface ? ' · ' + surfaceFr(match.surface) : ''}</span>
+                            ${hauteConf ? '<span class="tag acc">Confiance élevée</span>' : ''}
+                        </div>
+                        <div class="joueurs">
+                            <div class="j a">
+                                <div class="nom">${match.player_a}</div>
+                                <div class="cote">${match.odds_bookmaker ?? '—'}</div>
                             </div>
-                            <!-- Les deux joueurs, face à face : le contexte dessous se lit
-                                 dans le même axe (gauche = bleu, droite = orange). -->
-                            <div class="grid grid-cols-[1fr_auto_1fr] items-start gap-2 mb-5">
-                                <div class="text-right min-w-0">
-                                    <div class="text-base font-bold p1 truncate">${match.player_a}</div>
-                                    <div class="font-mono text-xs text-slate-400 mt-1">${match.odds_bookmaker ?? '—'}</div>
-                                </div>
-                                <div class="text-[11px] text-slate-600 font-bold pt-1">VS</div>
-                                <div class="text-left min-w-0">
-                                    <div class="text-base font-bold p2 truncate">${match.player_b}</div>
-                                    <div class="font-mono text-xs text-slate-400 mt-1">${match.odds_b ?? '—'}</div>
-                                </div>
+                            <div class="vs">VS</div>
+                            <div class="j">
+                                <div class="nom">${match.player_b}</div>
+                                <div class="cote">${match.odds_b ?? '—'}</div>
                             </div>
-                            <div class="text-center text-[10px] uppercase tracking-wider text-slate-600 font-bold mb-4">Cotes du marché</div>
+                        </div>
+                        <div class="cotes-lab">Cotes du marché</div>
 
-                            <!-- LE CONTEXTE : c'est lui le produit. Factuel, affiché pour
-                                 tous les matchs, y compris ceux où l'on ne conclut rien. -->
-                            <div class="border-t border-slate-700/50 pt-4">
-                                <div class="text-[10px] uppercase tracking-wider text-teal-400/80 font-bold mb-2 text-center">Le contexte du match</div>
-                                ${blocContexte(match)}
-                            </div>
+                        <!-- LE CONTEXTE : c'est lui le produit. Factuel, affiché pour
+                             tous les matchs, y compris ceux où l'on ne conclut rien. -->
+                        <div class="contexte">
+                            <div class="contexte-titre">Le contexte du match</div>
+                            ${blocContexte(match)}
                         </div>
-                        <div class="border-t border-slate-700/50 pt-4 -mx-6 -mb-6 px-6 pb-6 bg-slate-800/20 rounded-b-xl">
-                            ${analyseBox}
-                            ${ctaPremium}
-                        </div>
+                        <div class="pied-carte">${analyseBox}</div>
                     </div>`;
             });
         }
@@ -785,8 +957,7 @@
             const termines = resultats;
 
             if (termines.length === 0) {
-                const msg = "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
-                box.innerHTML = `<div class="text-center py-8 bg-slate-800/20 rounded-xl border border-dashed border-slate-700"><p class="text-slate-400 text-sm">${msg}</p></div>`;
+                box.innerHTML = `<div class="vide">Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.</div>`;
                 return;
             }
 
@@ -797,18 +968,15 @@
                 const gagne = m.match_status === 'Gagné';
                 const pl = (m.profit_loss ?? 0);
                 return `
-                    <div class="flex items-center justify-between gap-3 bg-slate-800/30 border border-slate-700/50 rounded-lg px-4 py-2.5">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <span class="text-[11px] font-mono text-slate-500 w-12 shrink-0">${(m.match_date||'').slice(5)}</span>
-                            <span class="truncate text-sm">
-                                <span class="font-semibold ${favoriA ? 'p1' : 'p2'}">${pickNom}</span>
-                                <span class="text-slate-500 text-xs"> vs ${advNom}</span>
-                            </span>
+                    <div class="res">
+                        <div class="res-g">
+                            <span class="res-date">${(m.match_date||'').slice(5)}</span>
+                            <span class="res-nom"><b>${pickNom}</b><span> vs ${advNom}</span></span>
                         </div>
-                        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                            ${m.score ? `<span class="hidden sm:inline text-[11px] font-mono text-slate-500">${m.score}</span>` : ''}
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded ${gagne ? 'bg-teal-500/20 text-teal-400' : 'bg-red-500/20 text-red-400'}">${gagne ? 'Gagné' : 'Perdu'}</span>
-                            <span class="font-mono text-sm font-bold w-16 text-right ${pl >= 0 ? 'text-teal-400' : 'text-red-400'}">${pl > 0 ? '+' : ''}${pl.toFixed(2)} u</span>
+                        <div class="res-d">
+                            ${m.score ? `<span class="res-score">${m.score}</span>` : ''}
+                            <span class="res-etat ${gagne ? 'g' : 'p'}">${gagne ? 'Gagné' : 'Perdu'}</span>
+                            <span class="res-pl ${pl >= 0 ? 'pos' : 'neg'}">${pl > 0 ? '+' : ''}${pl.toFixed(2)} u</span>
                         </div>
                     </div>`;
             }).join('');
