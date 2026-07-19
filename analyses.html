@@ -177,7 +177,9 @@
         const STRIPE_LINK  = 'https://buy.stripe.com/test_cNibJ28wyh06ewZ9RVaEE00';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let donneesGlobales = [];
+        let matchsDuJourTous = [];        // matchs du jour, tous circuits
+        let resultatsParCircuit = {};     // { ATP: [...25], WTA: [...25] }
+        let statsParCircuit = {};         // { ATP: {total,gagnes,bilan,cote_moyenne}, ... }
         let circuitActif = 'ATP';
         let sessionActuelle = null;
         let isPremium = false;
@@ -297,14 +299,79 @@
         async function seDeconnecter() { await supabaseClient.auth.signOut(); verifierSession(); }
 
         // --- CHARGEMENT DES MATCHS ---
+        // On ne télécharge JAMAIS tout l'historique : le coût resterait proportionnel
+        // au nombre de matchs accumulés. On charge le strict nécessaire, borné :
+        //   - les matchs du jour (~30 lignes)
+        //   - les 25 derniers résultats par circuit (50 lignes)
+        //   - les KPI via la vue d'agrégats stats_circuit (2 lignes)
+        const NB_RESULTATS = 25;
+
+        function dateDuJour() {
+            // date locale (pas toISOString qui bascule en UTC et peut décaler d'un jour)
+            const d = new Date();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const jj = String(d.getDate()).padStart(2, '0');
+            return `${d.getFullYear()}-${mm}-${jj}`;
+        }
+
+        async function chargerResultats(circuit) {
+            const { data, error } = await supabaseClient
+                .from('historical_predictions')
+                .select('*')
+                .eq('circuit', circuit)
+                .in('match_status', ['Gagné', 'Perdu'])
+                .order('match_date', { ascending: false })
+                .limit(NB_RESULTATS);
+            if (error) throw new Error(error.message);
+            return data || [];
+        }
+
+        // KPI : la vue renvoie 2 lignes. Si elle n'existe pas encore (SQL pas exécuté),
+        // on retombe sur un calcul client — mais en ne tirant que 4 colonnes, pas tout.
+        async function chargerStats() {
+            const { data, error } = await supabaseClient.from('stats_circuit').select('*');
+            if (!error && data) return data;
+
+            console.warn('Vue stats_circuit absente, repli léger :', error && error.message);
+            const { data: brut, error: e2 } = await supabaseClient
+                .from('historical_predictions')
+                .select('circuit,match_status,profit_loss,proba_ia,odds_bookmaker,odds_b')
+                .in('match_status', ['Gagné', 'Perdu']);
+            if (e2 || !brut) return [];
+            const parCircuit = {};
+            brut.forEach(m => {
+                const c = parCircuit[m.circuit] || (parCircuit[m.circuit] =
+                    { circuit: m.circuit, total: 0, gagnes: 0, bilan: 0, _cotes: [] });
+                c.total++;
+                if (m.match_status === 'Gagné') c.gagnes++;
+                c.bilan += (m.profit_loss || 0);
+                const cote = (m.proba_ia >= 50) ? m.odds_bookmaker : m.odds_b;
+                if (cote != null) c._cotes.push(cote);
+            });
+            return Object.values(parCircuit).map(c => ({
+                circuit: c.circuit, total: c.total, gagnes: c.gagnes,
+                bilan: c.bilan,
+                cote_moyenne: c._cotes.length
+                    ? c._cotes.reduce((a, b) => a + b, 0) / c._cotes.length : null,
+            }));
+        }
+
         async function initialiserKortics() {
             try {
-                const { data: historique, error } = await supabaseClient
-                    .from('historical_predictions')
-                    .select('*')
-                    .order('match_date', { ascending: false });
-                if (error) throw new Error(error.message);
-                donneesGlobales = historique || [];
+                const [jour, resATP, resWTA, stats] = await Promise.all([
+                    supabaseClient.from('historical_predictions').select('*')
+                        .eq('match_date', dateDuJour()),
+                    chargerResultats('ATP'),
+                    chargerResultats('WTA'),
+                    chargerStats(),
+                ]);
+                if (jour.error) throw new Error(jour.error.message);
+
+                matchsDuJourTous = jour.data || [];
+                resultatsParCircuit = { ATP: resATP, WTA: resWTA };
+                statsParCircuit = {};
+                (stats || []).forEach(s => { statsParCircuit[s.circuit] = s; });
+
                 await verifierSession();
             } catch (err) {
                 document.getElementById('match-container').innerHTML = `<div class="bg-red-900/50 border border-red-500 text-red-200 p-6 rounded-xl col-span-2">Erreur de chargement : ${err.message}</div>`;
@@ -362,17 +429,16 @@
             // ATP et WTA sont désormais actifs tous les deux.
             document.getElementById('circuit-note').classList.add('hidden');
 
-            const donneesFiltrees = donneesGlobales.filter(m => m.circuit === circuitActif);
-            // Performance = favori du modèle, sur TOUS les matchs terminés (mise à plat 1 u).
-            const parisTermines = donneesFiltrees.filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu');
-            const total = parisTermines.length;
+            // Performance : agrégats calculés côté serveur sur TOUS les matchs terminés
+            // (mise à plat 1 u). On ne télécharge plus l'historique pour ça.
+            const st = statsParCircuit[circuitActif];
+            const total = st ? Number(st.total) : 0;
 
             if (total > 0) {
-                const gagnes = parisTermines.filter(m => m.match_status === 'Gagné').length;
-                const profit = parisTermines.reduce((s,m)=> s + (m.profit_loss || 0), 0);
+                const gagnes = Number(st.gagnes);
+                const profit = Number(st.bilan);
                 const roi = (profit / total) * 100;   // mise à plat 1 u par match
-                const cotesFav = parisTermines.map(m => (m.proba_ia >= 50 ? m.odds_bookmaker : m.odds_b)).filter(c => c != null);
-                const coteMoy = cotesFav.length ? (cotesFav.reduce((a,b)=>a+b,0) / cotesFav.length) : null;
+                const coteMoy = st.cote_moyenne != null ? Number(st.cote_moyenne) : null;
                 document.getElementById('kpi-total').innerText = total;
                 document.getElementById('kpi-winrate').innerText = ((gagnes/total)*100).toFixed(1) + ' %';
                 document.getElementById('kpi-cote').innerText = coteMoy ? coteMoy.toFixed(2) : '--';
@@ -391,12 +457,11 @@
                 document.getElementById('kpi-roi').innerText = '-- %';
             }
 
-            renderResultats(donneesFiltrees);   // section transparence (toujours, même sans match du jour)
+            renderResultats(resultatsParCircuit[circuitActif] || []);   // section transparence
 
             const container = document.getElementById('match-container');
             container.innerHTML = '';
-            const aujourdhui = new Date().toISOString().split('T')[0];
-            const matchsDuJour = donneesFiltrees.filter(m => m.match_date === aujourdhui);
+            const matchsDuJour = matchsDuJourTous.filter(m => m.circuit === circuitActif);
             matchsDuJour.sort((a,b)=> (b.indice||0) - (a.indice||0));   // plus confiants en premier
 
             if (matchsDuJour.length === 0) {
@@ -492,12 +557,10 @@
         }
 
         // --- RÉSULTATS RÉCENTS (transparence, visible par tous) ---
-        function renderResultats(donneesFiltrees) {
+        function renderResultats(resultats) {
             const box = document.getElementById('resultats-container');
-            const termines = donneesFiltrees
-                .filter(m => m.match_status === 'Gagné' || m.match_status === 'Perdu')
-                .sort((a,b) => (a.match_date < b.match_date ? 1 : -1))
-                .slice(0, 25);
+            // déjà filtrés (terminés), triés et limités à NB_RESULTATS côté serveur
+            const termines = resultats;
 
             if (termines.length === 0) {
                 const msg = "Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.";
