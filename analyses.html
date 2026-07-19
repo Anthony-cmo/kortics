@@ -428,20 +428,22 @@
         const SURFACES_FR = { Clay:'terre battue', Hard:'dur', Grass:'gazon', Carpet:'moquette' };
         function surfaceFr(s){ return SURFACES_FR[s] || (s ? String(s).toLowerCase() : ''); }
 
-        // Nos chiffres valent 50 % (ou 1500 de niveau) PAR DÉFAUT quand notre base ne
-        // connaît pas le joueur. En dessous de ces seuils, ce n'est pas une mesure :
-        // on affiche « — » plutôt qu'un chiffre inventé.
-        const MIN_CARRIERE = 10, MIN_12M = 5, MIN_SURFACE = 5;
+        // Seuils du REPLI sur notre base (quand l'API n'a pas répondu) : nos chiffres
+        // y valent 50 % par défaut dès qu'elle ne connaît pas le joueur. En dessous,
+        // ce n'est pas une mesure : on affiche « — » plutôt qu'un chiffre inventé.
+        const MIN_12M = 5, MIN_SURFACE = 5;
         // n absent = colonnes d'effectifs pas encore remplies par le robot : on ne
         // bloque rien (on retombe sur l'ancien comportement) plutôt que de tout masquer.
         function assez(n, min){ return n == null || n >= min; }
 
         // Une ligne de comparaison : valeur A · libellé · valeur B, + barre de partage.
         // part = poids visuel du joueur A entre 0 et 1 (null = pas de barre).
-        function ligneContexte(label, aide, txtA, txtB, part, okA, okB, valA, valB) {
+        // moinsCestMieux : pour le classement, où le n°1 est le meilleur.
+        function ligneContexte(label, aide, txtA, txtB, part, okA, okB, valA, valB, moinsCestMieux) {
             const inconnu = 'text-slate-600';
-            const gagneA = okA && okB && valA != null && valB != null && valA > valB;
-            const gagneB = okA && okB && valA != null && valB != null && valB > valA;
+            const cmp = (x, y) => moinsCestMieux ? x < y : x > y;
+            const gagneA = okA && okB && valA != null && valB != null && cmp(valA, valB);
+            const gagneB = okA && okB && valA != null && valB != null && cmp(valB, valA);
             const clsA = !okA ? inconnu : (gagneA ? 'p1 font-bold' : 'text-slate-400');
             const clsB = !okB ? inconnu : (gagneB ? 'p2 font-bold' : 'text-slate-400');
             const pct = (part == null || !okA || !okB) ? null : Math.max(4, Math.min(96, part*100));
@@ -464,75 +466,123 @@
             };
         }
 
-        // Probabilité qu'un niveau a l'emporte sur un niveau b (formule Elo) — sert
-        // uniquement à donner une largeur de barre lisible, pas à prédire.
-        function partElo(a, b){ return 1 / (1 + Math.pow(10, (b - a) / 400)); }
         function partPct(a, b){ const s = (a||0) + (b||0); return s > 0 ? (a||0) / s : 0.5; }
+
+        // Les 5 derniers matchs réels, en pastilles V/D. Chaque pastille porte en
+        // infobulle l'adversaire, le score et le tournoi : c'est du fait vérifiable,
+        // pas un pourcentage calculé par nous.
+        function pastilles(derniers, cote) {
+            if (!Array.isArray(derniers) || derniers.length === 0) return null;
+            const ordre = cote === 'A' ? derniers.slice().reverse() : derniers;  // le plus récent près du centre
+            const html = ordre.map(x => {
+                const t = `${x.g ? 'Victoire' : 'Défaite'} contre ${x.adv || '?'}${x.s ? ' (' + x.s + ')' : ''}${x.t ? ' — ' + x.t : ''}${x.d ? ' le ' + x.d : ''}`;
+                const cls = x.g ? 'bg-teal-500/20 text-teal-300' : 'bg-red-500/15 text-red-300/80';
+                return `<span class="inline-block w-5 h-5 leading-5 text-center text-[10px] font-bold rounded ${cls}" title="${t.replace(/"/g, '&quot;')}">${x.g ? 'V' : 'D'}</span>`;
+            }).join(' ');
+            return `<div class="flex gap-1 ${cote === 'A' ? 'justify-end' : 'justify-start'}">${html}</div>`;
+        }
+
+        function ligneDerniers(m) {
+            const pa = pastilles(m.derniers_a, 'A'), pb = pastilles(m.derniers_b, 'B');
+            if (!pa && !pb) return null;
+            const aide = "Les cinq derniers matchs disputés, tous circuits confondus (y compris Challenger). Survolez une pastille pour l'adversaire et le score.";
+            const vide = `<div class="text-slate-600 font-mono text-sm">—</div>`;
+            return {
+                complet: !!(pa && pb),
+                html: `<div class="py-1.5">
+                        <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 mb-1">
+                            <div>${pa || vide}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold text-center whitespace-nowrap" title="${aide}">5 derniers</div>
+                            <div>${pb || vide}</div>
+                        </div>
+                        <div class="h-1 rounded-full bg-slate-700/30"></div>
+                    </div>`,
+            };
+        }
 
         function lignesContexte(m) {
             const surf = surfaceFr(m.surface);
             const l = [];
-
-            // Niveau global — terme grand public ; l'infobulle assume le mot « Elo ».
-            const okN_a = assez(m.n_a, MIN_CARRIERE), okN_b = assez(m.n_b, MIN_CARRIERE);
-            if (m.elo_a != null && m.elo_b != null)
-                l.push(ligneContexte('Niveau',
-                    "Niveau estimé d'après tous les matchs joués (classement de type Elo). Plus le nombre est haut, plus le joueur est fort.",
-                    Math.round(m.elo_a), Math.round(m.elo_b),
-                    partElo(m.elo_a, m.elo_b), okN_a, okN_b, m.elo_a, m.elo_b));
-
-            // Niveau sur la surface du jour
-            const okS_a = assez(m.nsurf_a, MIN_SURFACE), okS_b = assez(m.nsurf_b, MIN_SURFACE);
-            if (surf && m.elo_surf_a != null && m.elo_surf_b != null)
-                l.push(ligneContexte(`Niveau · ${surf}`,
-                    `Le même niveau, calculé uniquement sur les matchs joués sur ${surf}.`,
-                    Math.round(m.elo_surf_a), Math.round(m.elo_surf_b),
-                    partElo(m.elo_surf_a, m.elo_surf_b), okS_a, okS_b, m.elo_surf_a, m.elo_surf_b));
-
-            // Forme sur 12 mois (avec l'effectif quand on le connaît)
-            const ok12_a = assez(m.n12_a, MIN_12M), ok12_b = assez(m.n12_b, MIN_12M);
             const nb = n => n != null ? ` <span class="text-slate-600">(${n})</span>` : '';
-            if (m.form_a != null && m.form_b != null)
-                l.push(ligneContexte('Forme (12 mois)',
-                    'Pourcentage de matchs gagnés sur les douze derniers mois. Entre parenthèses : le nombre de matchs sur lequel c’est calculé.',
-                    `${m.form_a} %${nb(m.n12_a)}`, `${m.form_b} %${nb(m.n12_b)}`,
-                    partPct(m.form_a, m.form_b), ok12_a, ok12_b, m.form_a, m.form_b));
 
-            // Forme très récente (10 derniers matchs) — colonne récente, souvent absente
-            if (m.forme10_a != null && m.forme10_b != null)
-                l.push(ligneContexte('10 derniers matchs',
-                    'Pourcentage de victoires sur les dix derniers matchs disputés, toutes surfaces confondues.',
-                    `${m.forme10_a} %`, `${m.forme10_b} %`,
-                    partPct(m.forme10_a, m.forme10_b), okN_a, okN_b, m.forme10_a, m.forme10_b));
+            // 1) CLASSEMENT OFFICIEL — remplace l'Elo à l'affichage. L'Elo reste
+            //    l'entrée du modèle, mais « n°42 » parle à tout le monde et se
+            //    vérifie, là où « niveau 1653 » ne veut rien dire pour un visiteur.
+            const okC = m.classement_a != null, okCb = m.classement_b != null;
+            if (okC || okCb)
+                l.push(ligneContexte('Classement',
+                    'Classement officiel ATP / WTA à ce jour. Un joueur non classé (souvent en provenance du circuit secondaire) apparaît en tiret.',
+                    `n°${m.classement_a}${nb(m.points_a ? m.points_a + ' pts' : null)}`,
+                    `n°${m.classement_b}${nb(m.points_b ? m.points_b + ' pts' : null)}`,
+                    (okC && okCb) ? partPct(m.points_b, m.points_a) : null,   // barre par les points
+                    okC, okCb, m.classement_a, m.classement_b, true));
 
-            // Réussite sur la surface
-            if (surf && m.surf_pct_a != null && m.surf_pct_b != null)
+            // 2) BILAN RÉEL SUR LA SURFACE (victoires-défaites de la saison)
+            const bilan = (v, d) => (v != null && d != null) ? `${v}-${d}` : null;
+            const ba = bilan(m.surf_v_a, m.surf_d_a), bb = bilan(m.surf_v_b, m.surf_d_b);
+            const totA = (m.surf_v_a || 0) + (m.surf_d_a || 0), totB = (m.surf_v_b || 0) + (m.surf_d_b || 0);
+            if (surf && (ba || bb)) {
+                // ⚠️ Les deux bilans ne portent pas toujours sur la même saison : un
+                // joueur sans match compté cette année remonte à la précédente. Comparer
+                // « 2-5 en 2026 » à « 47-23 en 2025 » n'aurait aucun sens, alors on
+                // affiche les deux chiffres mais sans barre ni vainqueur désigné.
+                const memeSaison = !!(m.saison_surf_a && m.saison_surf_a === m.saison_surf_b);
+                const tauxA = totA ? (m.surf_v_a / totA) : null, tauxB = totB ? (m.surf_v_b / totB) : null;
+                l.push(ligneContexte(`Bilan · ${surf}`,
+                    `Victoires-défaites sur ${surf}, saison indiquée entre parenthèses. Chiffres officiels, pas une estimation.`,
+                    `${ba}${nb(m.saison_surf_a)}`, `${bb}${nb(m.saison_surf_b)}`,
+                    (memeSaison && tauxA != null && tauxB != null) ? partPct(tauxA * 100, tauxB * 100) : null,
+                    !!ba && totA >= 3, !!bb && totB >= 3,
+                    memeSaison ? tauxA : null, memeSaison ? tauxB : null));
+            }
+            else if (surf && m.surf_pct_a != null && m.surf_pct_b != null) {
+                // repli sur notre base tant que l'API n'a pas répondu
+                const okS_a = assez(m.nsurf_a, MIN_SURFACE), okS_b = assez(m.nsurf_b, MIN_SURFACE);
                 l.push(ligneContexte(`Victoires · ${surf}`,
                     `Pourcentage de matchs gagnés sur ${surf} depuis que notre base suit le joueur.`,
                     `${m.surf_pct_a} %${nb(m.nsurf_a)}`, `${m.surf_pct_b} %${nb(m.nsurf_b)}`,
                     partPct(m.surf_pct_a, m.surf_pct_b), okS_a, okS_b, m.surf_pct_a, m.surf_pct_b));
+            }
 
-            // Face-à-face : 0-0 n'est pas une donnée, c'est une première rencontre.
-            const ha = m.h2h_a || 0, hb = m.h2h_b || 0;
+            // 3) LES 5 DERNIERS MATCHS RÉELS — le cœur de la forme, et la donnée
+            //    qui existe enfin pour les joueurs venus du Challenger.
+            const der = ligneDerniers(m);
+            if (der) l.push(der);
+            else if (m.form_a != null && m.form_b != null) {
+                const ok12_a = assez(m.n12_a, MIN_12M), ok12_b = assez(m.n12_b, MIN_12M);
+                l.push(ligneContexte('Forme (12 mois)',
+                    'Pourcentage de matchs gagnés sur les douze derniers mois.',
+                    `${m.form_a} %${nb(m.n12_a)}`, `${m.form_b} %${nb(m.n12_b)}`,
+                    partPct(m.form_a, m.form_b), ok12_a, ok12_b, m.form_a, m.form_b));
+            }
+
+            // 4) FACE-À-FACE — celui de l'API couvre tous les circuits, le nôtre
+            //    ne voyait que le circuit principal. On préfère le réel.
+            const reel = (m.h2h_reel_a != null && m.h2h_reel_b != null);
+            const ha = reel ? m.h2h_reel_a : (m.h2h_a || 0);
+            const hb = reel ? m.h2h_reel_b : (m.h2h_b || 0);
             if (ha + hb > 0)
                 l.push(ligneContexte('Face-à-face',
-                    'Nombre de victoires de chacun dans leurs confrontations passées.',
+                    reel ? 'Victoires de chacun dans leurs confrontations passées, tous circuits confondus.'
+                         : 'Victoires de chacun dans leurs confrontations passées.',
                     ha, hb, partPct(ha, hb), true, true, ha, hb));
 
-            // Fraîcheur : ici, « plus » n'est pas « mieux » -> aucun gagnant désigné,
-            // aucune barre. On donne le fait, le lecteur en tire ce qu'il veut.
-            //
-            // ⚠️ Notre base ne couvre que le circuit principal. Un joueur qui enchaîne
-            // les Challengers y apparaît « au repos depuis 1188 jours » alors qu'il joue
-            // toutes les semaines. Au-delà de trois semaines, ce n'est donc plus une
-            // mesure de fraîcheur mais un trou dans nos données : on n'affiche rien.
+            // 5) FRAÎCHEUR — « plus » n'est pas « mieux » : aucun gagnant désigné,
+            //    aucune barre. On donne le fait, le lecteur en tire ce qu'il veut.
+            //    Le repos réel vient du vrai dernier match (tous circuits). Le repli
+            //    sur notre base reste plafonné à 21 jours : elle ne voit que le
+            //    circuit principal et annonçait « 1188 jours » pour un joueur qui
+            //    dispute un Challenger chaque semaine.
             const REPOS_MAX = 21;
-            if (m.repos_a != null && m.repos_b != null
-                && m.repos_a <= REPOS_MAX && m.repos_b <= REPOS_MAX) {
+            const ra = m.repos_reel_a != null ? m.repos_reel_a : m.repos_a;
+            const rb = m.repos_reel_b != null ? m.repos_reel_b : m.repos_b;
+            const reposReel = (m.repos_reel_a != null && m.repos_reel_b != null);
+            if (ra != null && rb != null && (reposReel || (ra <= REPOS_MAX && rb <= REPOS_MAX))) {
                 const j = v => v === 0 ? "aujourd'hui" : (v === 1 ? '1 jour' : `${v} jours`);
                 l.push(ligneContexte('Dernier match',
-                    'Jours écoulés depuis son dernier match sur le circuit principal : peu de jours = enchaînement, donc fatigue possible.',
-                    j(m.repos_a), j(m.repos_b), null, true, true, null, null));
+                    reposReel ? 'Jours écoulés depuis son dernier match, tous circuits confondus : peu de jours = enchaînement, donc fatigue possible.'
+                              : 'Jours écoulés depuis son dernier match sur le circuit principal.',
+                    j(ra), j(rb), null, true, true, null, null));
             }
 
             l.premiereRencontre = (ha + hb === 0);
