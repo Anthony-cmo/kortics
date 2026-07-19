@@ -306,6 +306,13 @@
             return { favoriA, pickNom: favoriA ? m.player_a : m.player_b, pickProba, coteJuste };
         }
 
+        // Notre favori est-il aussi celui du marché ? (cote la plus basse = favori du book)
+        // Quand les deux divergent, nos analyses sont nettement moins fiables — on le dit.
+        function contreLeMarche(m) {
+            if (m.odds_bookmaker == null || m.odds_b == null || m.proba_ia == null) return false;
+            return (m.proba_ia >= 50) !== (m.odds_bookmaker <= m.odds_b);
+        }
+
         // Indice de confiance MAISON (0.5/1/2/3) -> libellé + pastilles.
         // Mesure la fiabilité de notre lecture (pas un signal qui bat les bookmakers).
         function confiance(ind) {
@@ -390,6 +397,12 @@
                            <div class="text-base font-bold text-slate-300">⚖️ Match serré — pas de favori net</div>
                        </div>`;
                 } else {
+                    // Divergence avec le marché = signal de prudence, pas d'opportunité.
+                    const avertissement = contreLeMarche(match)
+                        ? `<div class="mt-3 flex items-start gap-2 text-[11px] leading-snug text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-2">
+                               <span class="shrink-0">⚠️</span>
+                               <span>Notre favori n'est <b>pas</b> celui du marché. Sur ce type de match, nos analyses se sont montrées <b>nettement moins fiables</b> — à considérer avec prudence.</span>
+                           </div>` : '';
                     analyseBox = `<div class="flex items-center justify-between gap-3">
                            <div class="min-w-0">
                                <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-0.5">Notre favori</div>
@@ -400,7 +413,7 @@
                                <div class="text-base font-bold ${conf.cls}"><span class="font-mono tracking-widest">${conf.dots}</span></div>
                                <div class="text-[10px] font-semibold ${conf.cls}">${conf.label}</div>
                            </div>
-                       </div>`;
+                       </div>${avertissement}`;
                 }
 
                 const ctaPremium = (!analyseVisible)
