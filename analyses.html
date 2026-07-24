@@ -293,16 +293,16 @@ footer b{color:var(--t2);font-weight:600}
             <div class="sourcil">Aide à la décision · Tennis ATP &amp; WTA</div>
             <h1>Le relevé du match, pas le pronostic.</h1>
             <p class="chapo">Classement officiel, forme récente, bilan par surface, face-à-face.
-               Nous montrons ce que nous mesurons — et nous nous taisons quand nous ne savons pas.</p>
+               On montre ce qu'on mesure. Et quand on ne sait pas, on se tait.</p>
 
             <div class="encart"><span class="ic">🛡️</span><span>
                 <b>Nous ne touchons pas un centime des bookmakers.</b>
-                Aucun lien d'affiliation, aucune commission sur vos pertes. Nous n'avons aucun
-                intérêt à ce que vous pariez plus — seulement à ce que vous décidiez mieux.
+                Pas d'affiliation, pas de commission sur vos pertes. On n'a aucun intérêt à ce que
+                vous pariiez plus, seulement à ce que vous décidiez mieux.
             </span></div>
             <div class="encart"><span class="ic">🎁</span><span>
-                <b>Tout est gratuit pendant la phase d'ouverture.</b>
-                Toutes les analyses, tous les matchs, sans paiement.
+                <b>Tout est gratuit pendant le lancement.</b>
+                Toutes les analyses, tous les matchs, sans payer.
             </span></div>
         </section>
 
@@ -346,8 +346,8 @@ footer b{color:var(--t2);font-weight:600}
                     <span>⚖️ match serré</span>
                 </div>
                 <p>Elle indique à quel point notre estimation rejoint celle du marché. Quand les deux
-                   s'éloignent, nos analyses se sont montrées nettement moins fiables — c'est une
-                   réserve sur notre lecture, pas une garantie de gain.</p>
+                   s'écartent, nos analyses se sont montrées bien moins fiables. C'est une réserve
+                   sur notre lecture, pas une garantie de gain.</p>
             </div>
 
             <div id="match-container"></div>
@@ -356,8 +356,8 @@ footer b{color:var(--t2);font-weight:600}
         <section>
             <div class="sourcil">Historique vérifiable</div>
             <h2>Résultats récents</h2>
-            <p class="note" style="margin-bottom:20px">Nos lectures passées — favori du modèle,
-               mise à plat d'une unité — affichées telles quelles, gagnées comme perdues.</p>
+            <p class="note" style="margin-bottom:20px">Nos lectures passées : le favori du modèle,
+               mise à plat d'une unité. Affichées telles quelles, gagnées comme perdues.</p>
             <div id="resultats-container"></div>
         </section>
 
@@ -811,7 +811,7 @@ footer b{color:var(--t2);font-weight:600}
             if (contexteFaible(m))
                 return `<div class="muet">
                             <div class="titre">📭 Joueurs trop peu connus de notre base</div>
-                            <div class="sous">Nous n'avons pas assez de matchs sur eux pour dresser un contexte fiable. Souvent le cas des joueurs qui arrivent du circuit secondaire.</div>
+                            <div class="sous">On n'a pas assez de matchs sur eux pour donner un contexte fiable. C'est souvent le cas des joueurs qui montent du circuit secondaire.</div>
                         </div>`;
             const l = lignesContexte(m);
             const premiere = l.premiereRencontre
@@ -893,19 +893,19 @@ footer b{color:var(--t2);font-weight:600}
                     analyseBox = `<div class="muet" style="padding:2px 0">
                            <div class="plab">Notre analyse</div>
                            <div class="titre" style="margin-top:3px">📭 Données insuffisantes sur ces joueurs</div>
-                           <div class="sous">Nous préférons ne rien annoncer plutôt qu'une estimation peu fiable.</div>
+                           <div class="sous">On préfère ne rien annoncer plutôt qu'une estimation peu fiable.</div>
                        </div>`;
                 } else if (serre) {
                     analyseBox = `<div class="muet" style="padding:2px 0">
                            <div class="plab">Notre analyse</div>
-                           <div class="titre" style="margin-top:3px">⚖️ Match serré — pas de favori net</div>
+                           <div class="titre" style="margin-top:3px">⚖️ Match serré, pas de favori net</div>
                        </div>`;
                 } else {
                     // Divergence avec le marché = signal de prudence, pas d'opportunité.
                     const avertissement = contreLeMarche(match)
                         ? `<div class="alerte" style="margin-top:11px"><span>⚠️</span>
-                               <span>Notre favori n'est <b>pas</b> celui du marché. Sur ce type de match,
-                               nos analyses se sont montrées <b>nettement moins fiables</b> — à considérer
+                               <span>Notre favori n'est <b>pas</b> celui du marché. Sur ce genre de match,
+                               nos analyses se sont montrées <b>bien moins fiables</b>. À prendre
                                avec prudence.</span></div>` : '';
                     analyseBox = `<div class="pied-h">
                            <div style="min-width:0">
@@ -957,7 +957,7 @@ footer b{color:var(--t2);font-weight:600}
             const termines = resultats;
 
             if (termines.length === 0) {
-                box.innerHTML = `<div class="vide">Aucun résultat pour l'instant — les matchs terminés apparaîtront ici automatiquement.</div>`;
+                box.innerHTML = `<div class="vide">Aucun résultat pour l'instant. Les matchs terminés s'afficheront ici automatiquement.</div>`;
                 return;
             }
 
