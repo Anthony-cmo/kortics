@@ -617,9 +617,12 @@ footer b{color:var(--t2);font-weight:600}
         // 57,1 % en montant l'échelle) et n'apportait rien à écart comparable. Il
         // reste calculé et stocké pour l'analyse, mais il n'est plus montré.
         //
-        // L'écart au marché, lui, est monotone sur 133 matchs :
-        //   < 10 pts : 76,3 % de réussite  |  10-20 : 54,5 %
-        //   20-30    : 40,0 %              |  > 30  : 33,3 % (déjà bloqué)
+        // L'écart au marché, lui, est monotone. Rejoué sans fuite sur 2 120 matchs
+        // (13/07 -> 21/10/2026 ; les 133 premiers matchs mesurés le 19/07 portaient
+        // la fuite du résultat et donnaient 76 / 55 / 40 %) :
+        //   < 10 pts : 66,5 % de réussite  |  10-20 : 63,0 %
+        //   20-30    : 59,7 %              |  > 30  : 34,8 % (déjà bloqué)
+        // Favori du marché sur les mêmes tranches : 66,1 / 68,7 / 72,3 / 75,9 %.
         //
         // ⚠️ À ne jamais présenter comme un rendement : mécaniquement, cela dit
         // « quand nous rejoignons le bookmaker, le bookmaker a raison ». C'est une
